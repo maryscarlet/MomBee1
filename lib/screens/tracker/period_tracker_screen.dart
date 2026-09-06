@@ -1,0 +1,761 @@
+import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
+import '../../models/period_data.dart';
+import '../../models/pregnancy_data.dart';
+import '../../state/app_state.dart';
+
+class PeriodTrackerScreen extends StatefulWidget {
+  const PeriodTrackerScreen({super.key});
+
+  @override
+  State<PeriodTrackerScreen> createState() => _PeriodTrackerScreenState();
+}
+
+class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> {
+  DateTime _displayedMonth = DateTime.now();
+
+  void _showEditCycleDialog() {
+    final periodData = AppState.instance.periodData;
+    DateTime selectedLmp = periodData.lastPeriodDate;
+    int cycleLen = periodData.cycleLength;
+    int duration = periodData.periodDuration;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          padding: EdgeInsets.only(
+            top: 24,
+            left: 20,
+            right: 20,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          decoration: const BoxDecoration(
+            color: AppColors.surfaceContainerLowest,
+            borderRadius:
+                BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceDim,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const Text(
+                'মাসিক চক্রের তথ্য পরিবর্তন করুন',
+                style: TextStyle(
+                  fontFamily: 'Noto Sans Bengali',
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.onSurface,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 1. Last Period Date
+              const Text(
+                'সর্বশেষ পিরিয়ডের শুরুর দিন',
+                style: TextStyle(
+                  fontFamily: 'Noto Sans Bengali',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 6),
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: selectedLmp,
+                    firstDate:
+                        DateTime.now().subtract(const Duration(days: 120)),
+                    lastDate: DateTime.now(),
+                  );
+                  if (picked != null) {
+                    setModalState(() => selectedLmp = picked);
+                  }
+                },
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(color: AppColors.borderCard),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.calendar_month_rounded,
+                          color: AppColors.primary, size: 20),
+                      const SizedBox(width: 10),
+                      Text(
+                        '${toBanglaDigits(selectedLmp.day)}/${toBanglaDigits(selectedLmp.month)}/${toBanglaDigits(selectedLmp.year)}',
+                        style: const TextStyle(
+                          fontFamily: 'Noto Sans Bengali',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const Spacer(),
+                      const Text(
+                        'পরিবর্তন',
+                        style: TextStyle(
+                          fontFamily: 'Noto Sans Bengali',
+                          fontSize: 12,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 2. Cycle Length (21 to 45 days)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'গড় সাইকেল দৈর্ঘ্য (Cycle Length)',
+                    style: TextStyle(
+                      fontFamily: 'Noto Sans Bengali',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    '${toBanglaDigits(cycleLen)} দিন',
+                    style: const TextStyle(
+                      fontFamily: 'Noto Sans Bengali',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+              Slider(
+                value: cycleLen.toDouble(),
+                min: 21,
+                max: 45,
+                divisions: 24,
+                activeColor: AppColors.primary,
+                onChanged: (v) {
+                  setModalState(() => cycleLen = v.round());
+                },
+              ),
+              const SizedBox(height: 10),
+
+              // 3. Period Duration (3 to 10 days)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'পিরিয়ডের স্থায়িত্ব (Period Duration)',
+                    style: TextStyle(
+                      fontFamily: 'Noto Sans Bengali',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    '${toBanglaDigits(duration)} দিন',
+                    style: const TextStyle(
+                      fontFamily: 'Noto Sans Bengali',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+              Slider(
+                value: duration.toDouble(),
+                min: 3,
+                max: 10,
+                divisions: 7,
+                activeColor: AppColors.primary,
+                onChanged: (v) {
+                  setModalState(() => duration = v.round());
+                },
+              ),
+              const SizedBox(height: 20),
+
+              // Save Button
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                  ),
+                  onPressed: () async {
+                    await AppState.instance.updatePeriodDetails(
+                      lastPeriodDate: selectedLmp,
+                      cycleLength: cycleLen,
+                      periodDuration: duration,
+                    );
+                    if (mounted) Navigator.pop(context);
+                  },
+                  child: const Text(
+                    'সংরক্ষণ করুন',
+                    style: TextStyle(
+                      fontFamily: 'Noto Sans Bengali',
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: AppState.instance,
+      builder: (context, _) {
+        final periodData = AppState.instance.periodData;
+
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            backgroundColor: AppColors.surfaceContainerLowest,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_rounded,
+                  color: AppColors.onSurface),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: const Text(
+              'পিরিয়ড ট্র্যাকার',
+              style: TextStyle(
+                fontFamily: 'Noto Sans Bengali',
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.onSurface,
+              ),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.tune_rounded, color: AppColors.primary),
+                tooltip: 'সাইকেল সেটিংস',
+                onPressed: _showEditCycleDialog,
+              ),
+            ],
+          ),
+          body: ListView(
+            padding: const EdgeInsets.all(20.0),
+            children: [
+              // 1. CYCLE HERO BANNER
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primary.withValues(alpha: 0.12),
+                      const Color(0xFFFFF6D6),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  boxShadow: AppShadows.subtleCard,
+                  border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.2)),
+                ),
+                child: Row(
+                  children: [
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 80,
+                          height: 80,
+                          child: CircularProgressIndicator(
+                            value: (periodData.currentCycleDay /
+                                    periodData.cycleLength)
+                                .clamp(0.0, 1.0),
+                            strokeWidth: 8,
+                            backgroundColor: Colors.white,
+                            valueColor:
+                                const AlwaysStoppedAnimation(AppColors.primary),
+                          ),
+                        ),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              toBanglaDigits(periodData.currentCycleDay),
+                              style: const TextStyle(
+                                fontFamily: 'Noto Sans Bengali',
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.primary,
+                                height: 1.0,
+                              ),
+                            ),
+                            const Text(
+                              'তম দিন',
+                              style: TextStyle(
+                                fontFamily: 'Noto Sans Bengali',
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 18),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'সাইকেল: ${toBanglaDigits(periodData.cycleLength)} দিন',
+                              style: const TextStyle(
+                                fontFamily: 'Noto Sans Bengali',
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            periodData.isFertileDay(DateTime.now())
+                                ? 'গর্ভধারণের সম্ভাবনাময় উর্বর সময় (Fertile Window)'
+                                : 'পরবর্তী পিরিয়ডের সম্ভাব্য তারিখ',
+                            style: const TextStyle(
+                              fontFamily: 'Noto Sans Bengali',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${toBanglaDigits(periodData.estimatedNextPeriod.day)}/${toBanglaDigits(periodData.estimatedNextPeriod.month)}/${toBanglaDigits(periodData.estimatedNextPeriod.year)}',
+                            style: const TextStyle(
+                              fontFamily: 'Noto Sans Bengali',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // 2. STATS 3-COLUMN BENTO
+              Row(
+                children: [
+                  _buildStatCard(
+                    title: 'ওভুলেশন ডে',
+                    value:
+                        '${toBanglaDigits(periodData.estimatedOvulationDate.day)}/${toBanglaDigits(periodData.estimatedOvulationDate.month)}',
+                    subtitle: 'সর্বাধিক উর্বর',
+                    color: const Color(0xFF745B00),
+                    bgColor: const Color(0xFFFFF6D6),
+                    icon: Icons.star_rounded,
+                  ),
+                  const SizedBox(width: 10),
+                  _buildStatCard(
+                    title: 'উর্বর সময়',
+                    value:
+                        '${toBanglaDigits(periodData.fertileWindowStart.day)}-${toBanglaDigits(periodData.fertileWindowEnd.day)}',
+                    subtitle: 'গর্ভধারণ উইন্ডো',
+                    color: const Color(0xFF7B1FA2),
+                    bgColor: const Color(0xFFF3E5F5),
+                    icon: Icons.favorite_rounded,
+                  ),
+                  const SizedBox(width: 10),
+                  _buildStatCard(
+                    title: 'স্থায়িত্ব',
+                    value: '${toBanglaDigits(periodData.periodDuration)} দিন',
+                    subtitle: 'রক্তস্রাবের সময়',
+                    color: AppColors.primary,
+                    bgColor: AppColors.primary.withValues(alpha: 0.1),
+                    icon: Icons.water_drop_rounded,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // 3. INTERACTIVE CALENDAR
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  boxShadow: AppShadows.subtleCard,
+                  border: Border.all(color: AppColors.borderCard),
+                ),
+                child: Column(
+                  children: [
+                    // Month Selector Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.chevron_left_rounded),
+                          onPressed: () {
+                            setState(() {
+                              _displayedMonth = DateTime(
+                                _displayedMonth.year,
+                                _displayedMonth.month - 1,
+                              );
+                            });
+                          },
+                        ),
+                        Text(
+                          '${_getMonthNameBangla(_displayedMonth.month)} ${toBanglaDigits(_displayedMonth.year)}',
+                          style: const TextStyle(
+                            fontFamily: 'Noto Sans Bengali',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.onSurface,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.chevron_right_rounded),
+                          onPressed: () {
+                            setState(() {
+                              _displayedMonth = DateTime(
+                                _displayedMonth.year,
+                                _displayedMonth.month + 1,
+                              );
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Day of Week Headers
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _WeekDayHeader('রবি'),
+                        _WeekDayHeader('সোম'),
+                        _WeekDayHeader('মঙ্গল'),
+                        _WeekDayHeader('বুধ'),
+                        _WeekDayHeader('বৃহঃ'),
+                        _WeekDayHeader('শুক্র'),
+                        _WeekDayHeader('শনি'),
+                      ],
+                    ),
+                    const Divider(height: 16),
+
+                    // Calendar Grid Days
+                    _buildCalendarGrid(periodData),
+
+                    const Divider(height: 20),
+                    // Legend
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 6,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        _buildLegendItem(AppColors.primary, 'পিরিয়ডের দিন'),
+                        _buildLegendItem(
+                            const Color(0xFFBA68C8), 'উর্বর উইন্ডো'),
+                        _buildLegendItem(
+                            const Color(0xFFFECB17), 'ওভুলেশন ডে'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // 4. LOG / RECORD TODAY CTA
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                ),
+                onPressed: () async {
+                  await AppState.instance.togglePeriodDay(DateTime.now());
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'আজকের দিনের পিরিয়ড স্ট্যাটাস আপডেট হয়েছে!',
+                          style: TextStyle(fontFamily: 'Noto Sans Bengali'),
+                        ),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.water_drop_rounded, size: 20),
+                label: Text(
+                  periodData.isPeriodDay(DateTime.now())
+                      ? 'আজকের পিরিয়ড সমাপ্ত চিহ্নিত করুন'
+                      : 'আজকে পিরিয়ড শুরু হয়েছে চিহ্নিত করুন',
+                  style: const TextStyle(
+                    fontFamily: 'Noto Sans Bengali',
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // 5. IMPORTANT MEDICAL UX DISCLAIMER
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  border: Border.all(color: AppColors.borderCard),
+                ),
+                child: const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline_rounded,
+                        color: AppColors.outline, size: 20),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'এগুলো আনুমানিক হিসাব। মাসিক চক্র ব্যক্তি ভেদে পরিবর্তিত হতে পারে। গর্ভনিরোধক বা চিকিৎসা সিদ্ধান্তের একমাত্র ভিত্তি হিসেবে এই হিসাব ব্যবহার করবেন না।',
+                        style: TextStyle(
+                          fontFamily: 'Noto Sans Bengali',
+                          fontSize: 12,
+                          height: 1.5,
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStatCard({
+    required String title,
+    required String value,
+    required String subtitle,
+    required Color color,
+    required Color bgColor,
+    required IconData icon,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: color, size: 18),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: TextStyle(
+                fontFamily: 'Noto Sans Bengali',
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              title,
+              style: const TextStyle(
+                fontFamily: 'Noto Sans Bengali',
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.onSurface,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCalendarGrid(PeriodData periodData) {
+    final year = _displayedMonth.year;
+    final month = _displayedMonth.month;
+    final daysInMonth = DateUtils.getDaysInMonth(year, month);
+    final firstDayWeekday = DateTime(year, month, 1).weekday % 7; // 0 for Sunday
+
+    final List<Widget> dayWidgets = [];
+
+    // Empty lead slots
+    for (int i = 0; i < firstDayWeekday; i++) {
+      dayWidgets.add(const SizedBox(width: 38, height: 38));
+    }
+
+    for (int d = 1; d <= daysInMonth; d++) {
+      final date = DateTime(year, month, d);
+      final isPeriod = periodData.isPeriodDay(date);
+      final isOvulation = periodData.isOvulationDay(date);
+      final isFertile = periodData.isFertileDay(date);
+      final isToday = DateUtils.isSameDay(date, DateTime.now());
+
+      Color? bg;
+      Color textColor = AppColors.onSurface;
+      BoxBorder? border;
+
+      if (isPeriod) {
+        bg = AppColors.primary;
+        textColor = Colors.white;
+      } else if (isOvulation) {
+        bg = const Color(0xFFFECB17);
+        textColor = const Color(0xFF745B00);
+      } else if (isFertile) {
+        bg = const Color(0xFFE1BEE7);
+        textColor = const Color(0xFF4A148C);
+      }
+
+      if (isToday && !isPeriod) {
+        border = Border.all(color: AppColors.primary, width: 2);
+      }
+
+      dayWidgets.add(
+        InkWell(
+          onTap: () => AppState.instance.togglePeriodDay(date),
+          borderRadius: BorderRadius.circular(19),
+          child: Container(
+            width: 38,
+            height: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: bg,
+              shape: BoxShape.circle,
+              border: border,
+            ),
+            child: Text(
+              toBanglaDigits(d),
+              style: TextStyle(
+                fontFamily: 'Noto Sans Bengali',
+                fontSize: 13,
+                fontWeight: (isPeriod || isOvulation || isToday)
+                    ? FontWeight.w800
+                    : FontWeight.w500,
+                color: textColor,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 7,
+      mainAxisSpacing: 6,
+      crossAxisSpacing: 4,
+      children: dayWidgets,
+    );
+  }
+
+  Widget _buildLegendItem(Color color, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: const TextStyle(
+            fontFamily: 'Noto Sans Bengali',
+            fontSize: 11,
+            color: AppColors.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _getMonthNameBangla(int month) {
+    const months = [
+      '',
+      'জানুয়ারি',
+      'ফেব্রুয়ারি',
+      'মার্চ',
+      'এপ্রিল',
+      'মে',
+      'জুন',
+      'জুলাই',
+      'আগস্ট',
+      'সেপ্টেম্বর',
+      'অক্টোবর',
+      'নভেম্বর',
+      'ডিসেম্বর'
+    ];
+    return months[month];
+  }
+}
+
+class _WeekDayHeader extends StatelessWidget {
+  final String label;
+  const _WeekDayHeader(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: const TextStyle(
+        fontFamily: 'Noto Sans Bengali',
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        color: AppColors.outline,
+      ),
+    );
+  }
+}
