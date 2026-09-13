@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../state/app_state.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -38,9 +39,7 @@ class _SplashScreenState extends State<SplashScreen>
     _animController.forward();
 
     _navigationTimer = Timer(const Duration(milliseconds: 2800), () {
-      if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/onboarding');
-      }
+      _navigateToNext();
     });
   }
 
@@ -51,11 +50,17 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
+  void _navigateToNext() {
+    if (!mounted) return;
+    final isReady = AppState.instance.hasCompletedInitialSetup &&
+        AppState.instance.userName.isNotEmpty;
+    final targetRoute = isReady ? '/main' : '/user-setup';
+    Navigator.of(context).pushReplacementNamed(targetRoute);
+  }
+
   void _skip() {
     _navigationTimer?.cancel();
-    if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/onboarding');
-    }
+    _navigateToNext();
   }
 
   @override

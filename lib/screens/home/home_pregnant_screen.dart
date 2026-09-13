@@ -61,10 +61,13 @@ class _HomePregnantScreenState extends State<HomePregnantScreen> {
               borderRadius:
                   BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            child: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                 Center(
                   child: Container(
                     width: 40,
@@ -231,7 +234,9 @@ class _HomePregnantScreenState extends State<HomePregnantScreen> {
                 ),
               ],
             ),
-          );
+          ),
+        ),
+      );
         },
       ),
     );
@@ -266,7 +271,9 @@ class _HomePregnantScreenState extends State<HomePregnantScreen> {
               Row(
                 children: [
                   Text(
-                    'সুপ্রভাত',
+                    AppState.instance.userName.isNotEmpty
+                        ? 'সুপ্রভাত, ${AppState.instance.userName}'
+                        : 'সুপ্রভাত',
                     style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: AppColors.onSurface,

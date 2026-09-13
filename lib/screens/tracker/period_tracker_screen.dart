@@ -38,10 +38,13 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> {
             borderRadius:
                 BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
               Center(
                 child: Container(
                   width: 40,
@@ -130,14 +133,17 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'গড় সাইকেল দৈর্ঘ্য (Cycle Length)',
-                    style: TextStyle(
-                      fontFamily: 'Noto Sans Bengali',
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                  const Expanded(
+                    child: Text(
+                      'গড় সাইকেল দৈর্ঘ্য (Cycle Length)',
+                      style: TextStyle(
+                        fontFamily: 'Noto Sans Bengali',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
                     '${toBanglaDigits(cycleLen)} দিন',
                     style: const TextStyle(
@@ -165,14 +171,17 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'পিরিয়ডের স্থায়িত্ব (Period Duration)',
-                    style: TextStyle(
-                      fontFamily: 'Noto Sans Bengali',
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                  const Expanded(
+                    child: Text(
+                      'পিরিয়ডের স্থায়িত্ব (Period Duration)',
+                      style: TextStyle(
+                        fontFamily: 'Noto Sans Bengali',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
                     '${toBanglaDigits(duration)} দিন',
                     style: const TextStyle(
@@ -209,12 +218,18 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> {
                     ),
                   ),
                   onPressed: () async {
+                    final cleanLmp = DateTime(selectedLmp.year, selectedLmp.month, selectedLmp.day);
                     await AppState.instance.updatePeriodDetails(
-                      lastPeriodDate: selectedLmp,
+                      lastPeriodDate: cleanLmp,
                       cycleLength: cycleLen,
                       periodDuration: duration,
                     );
-                    if (mounted) Navigator.pop(context);
+                    if (mounted) {
+                      setState(() {
+                        _displayedMonth = DateTime(cleanLmp.year, cleanLmp.month, 1);
+                      });
+                      Navigator.pop(context);
+                    }
                   },
                   child: const Text(
                     'সংরক্ষণ করুন',
@@ -230,7 +245,9 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> {
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 
   @override
@@ -336,22 +353,60 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              'সাইকেল: ${toBanglaDigits(periodData.cycleLength)} দিন',
-                              style: const TextStyle(
-                                fontFamily: 'Noto Sans Bengali',
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  'সাইকেল: ${toBanglaDigits(periodData.cycleLength)} দিন',
+                                  style: const TextStyle(
+                                    fontFamily: 'Noto Sans Bengali',
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ),
-                            ),
+                              InkWell(
+                                onTap: _showEditCycleDialog,
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                        color: AppColors.primary.withValues(alpha: 0.3)),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.edit_rounded,
+                                          size: 11, color: AppColors.primary),
+                                      SizedBox(width: 3),
+                                      Text(
+                                        'এডিট',
+                                        style: TextStyle(
+                                          fontFamily: 'Noto Sans Bengali',
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 6),
                           Text(
@@ -395,7 +450,7 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> {
                         ? 'Ovulation (Est.)'
                         : 'ওভুলেশন (আনুমানিক)',
                     value:
-                        '${toBanglaDigits(periodData.estimatedOvulationDate.day)}/${toBanglaDigits(periodData.estimatedOvulationDate.month)}',
+                        '${toBanglaDigits(periodData.upcomingOvulationDate.day)}/${toBanglaDigits(periodData.upcomingOvulationDate.month)}',
                     subtitle: AppLocalization.isEnglish
                         ? 'Peak Fertility'
                         : 'সর্বাধিক উর্বর দিন',
@@ -408,10 +463,10 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> {
                     title: AppLocalization.isEnglish
                         ? 'Fertile (Est.)'
                         : 'উর্বর সময় (আনুমানিক)',
-                    value: periodData.fertileWindowStart.month ==
-                            periodData.fertileWindowEnd.month
-                        ? '${toBanglaDigits(periodData.fertileWindowStart.day)} - ${toBanglaDigits(periodData.fertileWindowEnd.day)}'
-                        : '${toBanglaDigits(periodData.fertileWindowStart.day)}/${toBanglaDigits(periodData.fertileWindowStart.month)} - ${toBanglaDigits(periodData.fertileWindowEnd.day)}/${toBanglaDigits(periodData.fertileWindowEnd.month)}',
+                    value: periodData.upcomingFertileWindowStart.month ==
+                            periodData.upcomingFertileWindowEnd.month
+                        ? '${toBanglaDigits(periodData.upcomingFertileWindowStart.day)} - ${toBanglaDigits(periodData.upcomingFertileWindowEnd.day)}'
+                        : '${toBanglaDigits(periodData.upcomingFertileWindowStart.day)}/${toBanglaDigits(periodData.upcomingFertileWindowStart.month)} - ${toBanglaDigits(periodData.upcomingFertileWindowEnd.day)}/${toBanglaDigits(periodData.upcomingFertileWindowEnd.month)}',
                     subtitle: AppLocalization.isEnglish
                         ? 'Conception Window'
                         : 'গর্ভধারণ উইন্ডো',
@@ -451,6 +506,8 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                           icon: const Icon(Icons.chevron_left_rounded),
                           onPressed: () {
                             setState(() {
@@ -461,16 +518,25 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> {
                             });
                           },
                         ),
-                        Text(
-                          '${_getMonthNameBangla(_displayedMonth.month)} ${toBanglaDigits(_displayedMonth.year)}',
-                          style: const TextStyle(
-                            fontFamily: 'Noto Sans Bengali',
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.onSurface,
+                        Expanded(
+                          child: Center(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                '${_getMonthNameBangla(_displayedMonth.month)} ${toBanglaDigits(_displayedMonth.year)}',
+                                style: const TextStyle(
+                                  fontFamily: 'Noto Sans Bengali',
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.onSurface,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                         IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                           icon: const Icon(Icons.chevron_right_rounded),
                           onPressed: () {
                             setState(() {
@@ -487,15 +553,14 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> {
 
                     // Day of Week Headers
                     const Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _WeekDayHeader('রবি'),
-                        _WeekDayHeader('সোম'),
-                        _WeekDayHeader('মঙ্গল'),
-                        _WeekDayHeader('বুধ'),
-                        _WeekDayHeader('বৃহঃ'),
-                        _WeekDayHeader('শুক্র'),
-                        _WeekDayHeader('শনি'),
+                        Expanded(child: Center(child: _WeekDayHeader('রবি'))),
+                        Expanded(child: Center(child: _WeekDayHeader('সোম'))),
+                        Expanded(child: Center(child: _WeekDayHeader('মঙ্গল'))),
+                        Expanded(child: Center(child: _WeekDayHeader('বুধ'))),
+                        Expanded(child: Center(child: _WeekDayHeader('বৃহঃ'))),
+                        Expanded(child: Center(child: _WeekDayHeader('শুক্র'))),
+                        Expanded(child: Center(child: _WeekDayHeader('শনি'))),
                       ],
                     ),
                     const Divider(height: 16),
@@ -633,23 +698,33 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> {
           children: [
             Icon(icon, color: color, size: 18),
             const SizedBox(height: 6),
-            Text(
-              value,
-              style: TextStyle(
-                fontFamily: 'Noto Sans Bengali',
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                color: color,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                value,
+                maxLines: 1,
+                style: TextStyle(
+                  fontFamily: 'Noto Sans Bengali',
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                ),
               ),
             ),
             const SizedBox(height: 2),
-            Text(
-              title,
-              style: const TextStyle(
-                fontFamily: 'Noto Sans Bengali',
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: AppColors.onSurface,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                title,
+                maxLines: 1,
+                style: const TextStyle(
+                  fontFamily: 'Noto Sans Bengali',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.onSurface,
+                ),
               ),
             ),
           ],

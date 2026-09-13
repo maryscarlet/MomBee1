@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../models/article.dart';
 import '../../widgets/article_widgets.dart';
+import '../../services/app_localization.dart';
 
 class LearnHubScreen extends StatefulWidget {
   const LearnHubScreen({super.key});
@@ -82,11 +83,27 @@ class _LearnHubScreenState extends State<LearnHubScreen> {
       return matchesSearch && matchesCategory;
     }).toList();
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.surfaceContainerLowest,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        title: Text(
+          AppLocalization.isEnglish ? 'Learning Hub' : 'জ্ঞান ভাণ্ডার',
+          style: const TextStyle(
+            fontFamily: 'Noto Sans Bengali',
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onSurface,
+          ),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           // Search Input Bar
           Container(
             decoration: BoxDecoration(
@@ -233,12 +250,15 @@ class _LearnHubScreenState extends State<LearnHubScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'বিশেষ প্রবন্ধ',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 18,
-                    ),
+              Expanded(
+                child: Text(
+                  'বিশেষ প্রবন্ধ',
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                      ),
+                ),
               ),
               Text(
                 '${filteredArticles.length} টি প্রবন্ধ',
@@ -288,6 +308,7 @@ class _LearnHubScreenState extends State<LearnHubScreen> {
           const SizedBox(height: 24),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

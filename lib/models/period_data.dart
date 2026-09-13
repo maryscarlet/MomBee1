@@ -4,6 +4,7 @@ class PeriodData {
   final int periodDuration; // Days of bleeding e.g. 5
   final List<DateTime> loggedPeriodDays;
   final List<Map<String, dynamic>> pastCycles;
+  final bool isSetup;
 
   const PeriodData({
     required this.lastPeriodDate,
@@ -11,6 +12,7 @@ class PeriodData {
     this.periodDuration = 5,
     this.loggedPeriodDays = const [],
     this.pastCycles = const [],
+    this.isSetup = true,
   });
 
   /// Normalized Last Period Date (midnight)
@@ -56,6 +58,12 @@ class PeriodData {
     return DateTime(next.year, next.month, next.day - 14);
   }
 
+  /// Next Upcoming Ovulation Day: Approximately 14 days before upcoming next period
+  DateTime get upcomingOvulationDate {
+    final next = upcomingNextPeriod;
+    return DateTime(next.year, next.month, next.day - 14);
+  }
+
   /// 1-based cycle day of ovulation (e.g. Day 15 for 28-day cycle: 28 - 14 + 1)
   int get ovulationCycleDay => cycleLength - 14 + 1;
 
@@ -71,6 +79,18 @@ class PeriodData {
     return DateTime(ov.year, ov.month, ov.day + 1);
   }
 
+  /// Next Upcoming Fertile Window Start (5 days before upcoming ovulation)
+  DateTime get upcomingFertileWindowStart {
+    final ov = upcomingOvulationDate;
+    return DateTime(ov.year, ov.month, ov.day - 5);
+  }
+
+  /// Next Upcoming Fertile Window End (1 day after upcoming ovulation)
+  DateTime get upcomingFertileWindowEnd {
+    final ov = upcomingOvulationDate;
+    return DateTime(ov.year, ov.month, ov.day + 1);
+  }
+
   /// 1-based cycle day for start of fertile window
   int get fertileStartCycleDay => ovulationCycleDay - 5;
 
@@ -79,6 +99,7 @@ class PeriodData {
 
   /// Checks if a date falls inside the fertile window
   bool isFertileDay(DateTime date) {
+    if (!isSetup) return false;
     final cleanDate = DateTime(date.year, date.month, date.day);
     final diff = daysDifference(normalizedLmp, cleanDate);
     final dayInCycle = (((diff % cycleLength) + cycleLength) % cycleLength) + 1;
@@ -87,6 +108,7 @@ class PeriodData {
 
   /// Checks if a date is ovulation day
   bool isOvulationDay(DateTime date) {
+    if (!isSetup) return false;
     final cleanDate = DateTime(date.year, date.month, date.day);
     final diff = daysDifference(normalizedLmp, cleanDate);
     final dayInCycle = (((diff % cycleLength) + cycleLength) % cycleLength) + 1;
@@ -104,7 +126,8 @@ class PeriodData {
         return true;
       }
     }
-    // Check recurring cycle bleeding window
+    if (!isSetup) return false;
+    // Check recurring cycle bleeding window across past and future cycles
     final diff = daysDifference(normalizedLmp, cleanDate);
     final dayInCycle = (((diff % cycleLength) + cycleLength) % cycleLength) + 1;
     return dayInCycle <= periodDuration;
@@ -118,6 +141,7 @@ class PeriodData {
       'loggedPeriodDays':
           loggedPeriodDays.map((d) => d.toIso8601String()).toList(),
       'pastCycles': pastCycles,
+      'isSetup': isSetup,
     };
   }
 
@@ -136,6 +160,7 @@ class PeriodData {
               ?.map((c) => Map<String, dynamic>.from(c as Map))
               .toList() ??
           [],
+      isSetup: json['isSetup'] as bool? ?? (json['lastPeriodDate'] != null),
     );
   }
 
@@ -145,6 +170,7 @@ class PeriodData {
     int? periodDuration,
     List<DateTime>? loggedPeriodDays,
     List<Map<String, dynamic>>? pastCycles,
+    bool? isSetup,
   }) {
     return PeriodData(
       lastPeriodDate: lastPeriodDate ?? this.lastPeriodDate,
@@ -152,6 +178,7 @@ class PeriodData {
       periodDuration: periodDuration ?? this.periodDuration,
       loggedPeriodDays: loggedPeriodDays ?? this.loggedPeriodDays,
       pastCycles: pastCycles ?? this.pastCycles,
+      isSetup: isSetup ?? this.isSetup,
     );
   }
 }

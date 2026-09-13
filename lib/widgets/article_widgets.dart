@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../models/article.dart';
 import '../theme/app_theme.dart';
 
@@ -55,21 +55,25 @@ class ArticleCard extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.08),
-                              borderRadius:
-                                  BorderRadius.circular(AppRadius.full),
-                            ),
-                            child: Text(
-                              article.category,
-                              style: const TextStyle(
-                                fontFamily: 'Noto Sans Bengali',
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primary,
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.08),
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.full),
+                              ),
+                              child: Text(
+                                article.category,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontFamily: 'Noto Sans Bengali',
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary,
+                                ),
                               ),
                             ),
                           ),
@@ -135,84 +139,89 @@ void showMomBeeArticleDetails(BuildContext context, Article article) {
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (context) => Container(
-      height: MediaQuery.of(context).size.height * 0.90,
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
-      ),
-      child: Column(
-        children: [
-          Center(
-            child: Container(
-              width: 44,
-              height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceDim,
-                borderRadius: BorderRadius.circular(2),
+    builder: (context) => SafeArea(
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.90,
+        decoration: const BoxDecoration(
+          color: AppColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+        ),
+        child: Column(
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceDim,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
-          ),
-          Expanded(
-            child: ListView(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
-                  child: Image.network(
-                    article.imageUrl,
-                    height: 200,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+            Expanded(
+              child: ListView(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    child: Image.network(
+                      article.imageUrl,
                       height: 200,
-                      color: AppColors.surfaceContainerHigh,
-                      child: const Icon(Icons.image, color: AppColors.outline),
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        height: 200,
+                        color: AppColors.surfaceContainerHigh,
+                        child: const Icon(Icons.image, color: AppColors.outline),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(AppRadius.full),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(AppRadius.full),
+                          ),
+                          child: Text(
+                            article.category,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontFamily: 'Noto Sans Bengali',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
                       ),
-                      child: Text(
-                        article.category,
+                      const SizedBox(width: 8),
+                      Text(
+                        '• ${article.readTime}',
                         style: const TextStyle(
                           fontFamily: 'Noto Sans Bengali',
                           fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
+                          color: AppColors.onSurfaceVariant,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '• ${article.readTime}',
-                      style: const TextStyle(
-                        fontFamily: 'Noto Sans Bengali',
-                        fontSize: 12,
-                        color: AppColors.onSurfaceVariant,
+                      const Spacer(),
+                      Text(
+                        article.publishedDate,
+                        style: const TextStyle(
+                          fontFamily: 'Noto Sans Bengali',
+                          fontSize: 12,
+                          color: AppColors.outline,
+                        ),
                       ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      article.publishedDate,
-                      style: const TextStyle(
-                        fontFamily: 'Noto Sans Bengali',
-                        fontSize: 12,
-                        color: AppColors.outline,
-                      ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
                 const SizedBox(height: 12),
                 Text(
                   article.title,
@@ -471,5 +480,6 @@ void showMomBeeArticleDetails(BuildContext context, Article article) {
         ],
       ),
     ),
-  );
+  ),
+);
 }

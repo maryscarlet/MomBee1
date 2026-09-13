@@ -43,8 +43,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
             borderRadius:
                 BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
           ),
-          child: SingleChildScrollView(
-            child: Column(
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -280,7 +282,8 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   @override

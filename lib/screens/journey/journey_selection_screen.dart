@@ -62,6 +62,7 @@ class _JourneySelectionScreenState extends State<JourneySelectionScreen> {
 
     final journey = JourneyTypeExtension.fromString(id);
     await AppState.instance.setJourney(journey);
+    await AppState.instance.completeInitialSetup();
 
     // Smooth navigation into Main App
     Future.delayed(const Duration(milliseconds: 200), () {

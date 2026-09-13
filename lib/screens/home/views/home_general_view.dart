@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
 import '../../../models/article.dart';
 import '../../../models/journey_type.dart';
+import '../../../state/app_state.dart';
 import '../../../widgets/daily_message_card.dart';
 import '../../../widgets/article_widgets.dart';
 import '../../tracker/vaccination_screen.dart';
@@ -24,7 +25,9 @@ class HomeGeneralView extends StatelessWidget {
           Row(
             children: [
               Text(
-                'সুপ্রভাত',
+                AppState.instance.userName.isNotEmpty
+                    ? 'সুপ্রভাত, ${AppState.instance.userName}'
+                    : 'সুপ্রভাত',
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: AppColors.onSurface,

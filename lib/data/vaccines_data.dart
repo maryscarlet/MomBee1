@@ -8,7 +8,7 @@ final List<VaccineItem> defaultVaccinesList = [
     targetAudience: 'গর্ভকালীন',
     schedule: 'গর্ভাবস্থার ৫ম বা ৬ষ্ঠ মাসে (২০-২৪ সপ্তাহ)',
     description: 'মা ও অনাগত নবজাতককে ধনুষ্টঙ্কার রোগ থেকে সুরক্ষা দেয়।',
-    isCompleted: true,
+    isCompleted: false,
   ),
   const VaccineItem(
     id: 'tt_2',
@@ -34,7 +34,7 @@ final List<VaccineItem> defaultVaccinesList = [
     targetAudience: 'নবজাতক',
     schedule: 'জন্মের সাথে সাথে বা প্রথম সপ্তাহে',
     description: 'যক্ষ্মা (Tuberculosis) ও পোলিও রোগের বিরুদ্ধে কার্যকর প্রাথমিক প্রতিরোধ।',
-    isCompleted: true,
+    isCompleted: false,
   ),
   const VaccineItem(
     id: 'penta_1',

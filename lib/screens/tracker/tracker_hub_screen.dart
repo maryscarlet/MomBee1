@@ -30,19 +30,24 @@ class _TrackerHubScreenState extends State<TrackerHubScreen> {
           final percent = AppState.instance.waterProgress;
 
           return Container(
-            height: MediaQuery.of(context).size.height * 0.58,
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
+            ),
             padding: const EdgeInsets.all(24.0),
             decoration: const BoxDecoration(
               color: AppColors.surfaceContainerLowest,
               borderRadius:
                   BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
+            child: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
                     height: 4,
                     margin: const EdgeInsets.only(bottom: 16),
                     decoration: BoxDecoration(
@@ -170,11 +175,13 @@ class _TrackerHubScreenState extends State<TrackerHubScreen> {
                 ),
               ],
             ),
-          );
-        },
-      ),
-    );
-  }
+          ),
+        ),
+        );
+      },
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {

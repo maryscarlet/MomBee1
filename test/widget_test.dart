@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mombee_app/main.dart';
@@ -23,8 +22,12 @@ import 'package:mombee_app/screens/tracker/tracker_hub_screen.dart';
 import 'package:mombee_app/screens/profile/profile_screen.dart';
 import 'package:mombee_app/models/video.dart';
 import 'package:mombee_app/screens/video/video_library_screen.dart';
+import 'package:mombee_app/screens/learn/learn_hub_screen.dart';
+import 'package:mombee_app/screens/onboarding/user_name_setup_screen.dart';
+import 'package:mombee_app/data/vaccines_data.dart';
 import 'package:mombee_app/services/local_storage_service.dart';
 import 'package:mombee_app/services/app_localization.dart';
+import 'package:mombee_app/theme/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -380,6 +383,7 @@ void main() {
 
     testWidgets('ProfileScreen renders with settings and dynamic stats',
         (WidgetTester tester) async {
+      await AppState.instance.setUserName('সাদিয়া রহমান');
       await tester.pumpWidget(
         const MaterialApp(home: ProfileScreen()),
       );
@@ -388,6 +392,7 @@ void main() {
       expect(find.text('সাদিয়া রহমান'), findsOneWidget);
       expect(find.text('আমার কার্যক্রম'), findsOneWidget);
       expect(find.text('সেটিংস'), findsOneWidget);
+      expect(find.text('অ্যাপের তথ্য রিসেট করুন'), findsOneWidget);
     });
   });
 
@@ -789,5 +794,429 @@ void main() {
         expect(video.thumbnailUrl, 'https://img.youtube.com/vi/${video.videoId}/hqdefault.jpg');
       }
     });
+  });
+
+  group('7. Real Device Testing Issues: Period Tracker State Sync & Android Responsiveness/SafeArea', () {
+    test('Period Tracker data updates and recalculates accurately', () async {
+      final baseDate = DateTime(2026, 9, 1);
+      final initialData = PeriodData(
+        lastPeriodDate: baseDate,
+        cycleLength: 28,
+        periodDuration: 5,
+        loggedPeriodDays: List.generate(5, (i) => baseDate.add(Duration(days: i))),
+      );
+
+      // Verify initial next period, ovulation, and fertile window
+      expect(initialData.estimatedNextPeriod, DateTime(2026, 9, 29));
+      expect(initialData.ovulationCycleDay, 15); // 28 - 14 + 1
+      expect(initialData.fertileStartCycleDay, 10);
+      expect(initialData.fertileEndCycleDay, 16);
+
+      // Now update cycleLength to 32
+      await AppState.instance.updatePeriodDetails(
+        lastPeriodDate: baseDate,
+        cycleLength: 32,
+        periodDuration: 5,
+      );
+
+      final updatedState = AppState.instance.periodData;
+      expect(updatedState.cycleLength, 32);
+      expect(updatedState.estimatedNextPeriod, DateTime(2026, 10, 3));
+      expect(updatedState.ovulationCycleDay, 19); // 32 - 14 + 1
+      expect(updatedState.fertileStartCycleDay, 14);
+      expect(updatedState.fertileEndCycleDay, 20);
+
+      // Now update periodDuration to 3
+      await AppState.instance.updatePeriodDetails(
+        periodDuration: 3,
+      );
+
+      final durationUpdatedState = AppState.instance.periodData;
+      expect(durationUpdatedState.periodDuration, 3);
+      expect(durationUpdatedState.loggedPeriodDays.length, 3);
+      expect(durationUpdatedState.isPeriodDay(DateTime(2026, 9, 1)), isTrue);
+      expect(durationUpdatedState.isPeriodDay(DateTime(2026, 9, 2)), isTrue);
+      expect(durationUpdatedState.isPeriodDay(DateTime(2026, 9, 3)), isTrue);
+      expect(durationUpdatedState.isPeriodDay(DateTime(2026, 9, 4)), isFalse);
+      expect(durationUpdatedState.isPeriodDay(DateTime(2026, 9, 5)), isFalse);
+
+      // Now update LMP to a new date
+      final newLmp = DateTime(2026, 9, 10);
+      await AppState.instance.updatePeriodDetails(
+        lastPeriodDate: newLmp,
+      );
+
+      final lmpUpdated = AppState.instance.periodData;
+      expect(lmpUpdated.normalizedLmp, DateTime(2026, 9, 10));
+      expect(lmpUpdated.loggedPeriodDays.first, DateTime(2026, 9, 10));
+      expect(lmpUpdated.loggedPeriodDays.length, 3);
+      expect(lmpUpdated.isPeriodDay(DateTime(2026, 9, 1)), isFalse);
+      expect(lmpUpdated.isPeriodDay(DateTime(2026, 9, 10)), isTrue);
+    });
+
+    testWidgets('Google Pixel 6a form factor: LearnHub and VideoLibrary have AppBar with status bar clearance',
+        (WidgetTester tester) async {
+      // Simulate Google Pixel 6a: 1080x2340 physical, 2.625 dpr -> 411.4 x 891.4dp
+      // 126 physical px top padding / 2.625 = 48.0dp status bar
+      tester.view.physicalSize = const Size(1080, 2340);
+      tester.view.devicePixelRatio = 2.625;
+      tester.view.padding = const FakeViewPadding(top: 126, bottom: 63);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+        tester.view.resetPadding();
+      });
+
+      // 1. LearnHubScreen renders Scaffold and AppBar with status bar clearance
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const LearnHubScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final learnAppBar = find.byType(AppBar);
+      expect(learnAppBar, findsOneWidget);
+      expect(find.text('জ্ঞান ভাণ্ডার'), findsOneWidget);
+
+      final titleTop = tester.getTopLeft(find.text('জ্ঞান ভাণ্ডার')).dy;
+      expect(titleTop, greaterThanOrEqualTo(48.0));
+
+      // 2. VideoLibraryScreen renders Scaffold and AppBar with status bar clearance
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const VideoLibraryScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final videoAppBar = find.byType(AppBar);
+      expect(videoAppBar, findsOneWidget);
+      expect(find.text('ভিডিও লাইব্রেরি'), findsOneWidget);
+
+      final videoTitleTop = tester.getTopLeft(find.text('ভিডিও লাইব্রেরি')).dy;
+      expect(videoTitleTop, greaterThanOrEqualTo(48.0));
+    });
+
+    testWidgets('PeriodTrackerScreen hero banner has direct edit chip and opens modal',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(home: PeriodTrackerScreen()),
+      );
+      await tester.pumpAndSettle();
+
+      // Find the hero banner edit chip
+      expect(find.text('এডিট'), findsOneWidget);
+
+      // Tap edit button to open edit modal
+      await tester.tap(find.text('এডিট'));
+      await tester.pumpAndSettle();
+
+      // Modal is visible
+      expect(find.text('মাসিক চক্রের তথ্য পরিবর্তন করুন'), findsOneWidget);
+      expect(find.text('সংরক্ষণ করুন'), findsOneWidget);
+    });
+
+    testWidgets('Period tracker modal does not overflow on small height / keyboard constraint',
+        (WidgetTester tester) async {
+      // Set constrained height e.g. 400dp
+      tester.view.physicalSize = const Size(1080, 1000);
+      tester.view.devicePixelRatio = 2.5;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        const MaterialApp(home: PeriodTrackerScreen()),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.tune_rounded));
+      await tester.pumpAndSettle();
+
+      // Verify modal content rendered without throwing RenderFlex overflow
+      expect(find.text('মাসিক চক্রের তথ্য পরিবর্তন করুন'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('Stat cards do not overflow on narrow 320dp screen',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(640, 1136); // 320 x 568dp
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      FlutterErrorDetails? caughtDetails;
+      final oldHandler = FlutterError.onError;
+      FlutterError.onError = (details) {
+        caughtDetails = details;
+      };
+
+      await tester.pumpWidget(
+        const MaterialApp(home: PeriodTrackerScreen()),
+      );
+      await tester.pumpAndSettle();
+      FlutterError.onError = oldHandler;
+
+      expect(caughtDetails, isNull);
+      expect(find.byType(FittedBox), findsWidgets);
+    });
+  });
+
+  // =========================================================================
+  // 11. FIRST-TIME USER NAME SETUP & CLEAN INSTALL STATE AUDIT
+  // =========================================================================
+  group('11. First-Time User Name Setup & Clean Install State Audit', () {
+    testWidgets('UserNameSetupScreen renders with Bangla prompt, hint, and button',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const UserNameSetupScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('স্বাগতম! আপনাকে কী নামে ডাকবো?'), findsOneWidget);
+      expect(find.text('আপনার নাম লিখুন (যেমন: সাদিয়া)'), findsOneWidget);
+      expect(find.text('এগিয়ে যান'), findsOneWidget);
+      expect(
+          find.textContaining('আপনার তথ্য সম্পূর্ণ আপনার ডিভাইসে সংরক্ষিত থাকবে'),
+          findsOneWidget);
+    });
+
+    testWidgets('UserNameSetupScreen validates empty input and shows error',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const UserNameSetupScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap submit button without typing any name
+      await tester.tap(find.text('এগিয়ে যান'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('অনুগ্রহ করে আপনার নাম লিখুন'), findsOneWidget);
+    });
+
+    testWidgets(
+        'UserNameSetupScreen submits valid name, updates AppState, and navigates',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          initialRoute: '/user-setup',
+          routes: {
+            '/user-setup': (_) => const UserNameSetupScreen(),
+            '/onboarding': (_) =>
+                const Scaffold(body: Text('অনবোর্ডিং স্ক্রিন')),
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Enter valid user name
+      await tester.enterText(find.byType(TextField), 'ফারহানা শারমিন');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('এগিয়ে যান'));
+      await tester.pumpAndSettle();
+
+      expect(AppState.instance.userName, 'ফারহানা শারমিন');
+      expect(find.text('অনবোর্ডিং স্ক্রিন'), findsOneWidget);
+    });
+
+    test('Clean fresh-install state defaults are truly empty without mock data',
+        () async {
+      await AppState.instance.resetAllUserData();
+
+      expect(AppState.instance.userName, isEmpty);
+      expect(AppState.instance.hasCompletedInitialSetup, isFalse);
+      expect(AppState.instance.waterGlasses, 0);
+      expect(AppState.instance.appointments, isEmpty);
+      expect(AppState.instance.periodData.isSetup, isFalse);
+      expect(AppState.instance.babyData.isSetup, isFalse);
+
+      // Verify all default vaccines start unchecked
+      for (final v in defaultVaccinesList) {
+        expect(v.isCompleted, isFalse,
+            reason: 'Vaccine ${v.id} should be uncompleted by default');
+      }
+    });
+
+    testWidgets('ProfileScreen shows fallback text when user name is not set',
+        (WidgetTester tester) async {
+      await AppState.instance.resetAllUserData();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const ProfileScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('মমবি সদস্য'), findsOneWidget);
+      expect(find.text('সাদিয়া রহমান'), findsNothing);
+    });
+  });
+
+  // =========================================================================
+  // 12. PROFILE RESET APP DATA DIALOG & FLOW AUDIT
+  // =========================================================================
+  group('12. Profile Reset App Data Dialog & Flow Audit', () {
+    testWidgets(
+        'Reset App Data dialog renders and cancels safely without wiping data',
+        (WidgetTester tester) async {
+      await AppState.instance.setUserName('সুমাইয়া');
+      expect(AppState.instance.userName, 'সুমাইয়া');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const ProfileScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Scroll until reset button is visible and tap
+      await tester.scrollUntilVisible(
+        find.text('অ্যাপের তথ্য রিসেট করুন'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('অ্যাপের তথ্য রিসেট করুন'));
+      await tester.pumpAndSettle();
+
+      // Verify dialog is shown
+      expect(find.text('অ্যাপের তথ্য রিসেট করবেন?'), findsOneWidget);
+      expect(find.textContaining('আপনার নাম, বয়স, নির্ধারিত পর্যায়'),
+          findsOneWidget);
+
+      // Cancel dialog
+      await tester.tap(find.text('বাতিল'));
+      await tester.pumpAndSettle();
+
+      // Verify dialog dismissed and name still preserved
+      expect(find.text('অ্যাপের তথ্য রিসেট করবেন?'), findsNothing);
+      expect(AppState.instance.userName, 'সুমাইয়া');
+    });
+
+    testWidgets(
+        'Confirming Reset App Data clears state and navigates to /user-setup',
+        (WidgetTester tester) async {
+      await AppState.instance.setUserName('সুমাইয়া');
+      await AppState.instance.completeInitialSetup();
+      expect(AppState.instance.userName, 'সুমাইয়া');
+      expect(AppState.instance.hasCompletedInitialSetup, isTrue);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          routes: {
+            '/user-setup': (_) =>
+                const Scaffold(body: Text('ইউজার সেটআপ স্ক্রিন')),
+          },
+          home: const ProfileScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Scroll until reset button is visible and tap
+      await tester.scrollUntilVisible(
+        find.text('অ্যাপের তথ্য রিসেট করুন'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.text('অ্যাপের তথ্য রিসেট করুন'));
+      await tester.pumpAndSettle();
+
+      // Confirm deletion
+      await tester.tap(find.text('তথ্য রিসেট করুন'));
+      await tester.pumpAndSettle();
+
+      // Verify state was wiped and redirected
+      expect(AppState.instance.userName, isEmpty);
+      expect(AppState.instance.hasCompletedInitialSetup, isFalse);
+      expect(find.text('ইউজার সেটআপ স্ক্রিন'), findsOneWidget);
+    });
+  });
+
+  // =========================================================================
+  // 13. MULTI-DEVICE RESPONSIVE UI AUDIT (320dp to 480dp)
+  // =========================================================================
+  group('13. Multi-Device Responsive UI Audit', () {
+    const testDevices = <String, Size>{
+      'iPhone SE / Small Screen (320 x 568)': Size(320, 568),
+      'Standard Phone (360 x 640)': Size(360, 640),
+      'Google Pixel 6a (411.4 x 891.4)': Size(411.4, 891.4),
+      'Modern Tall Device (412 x 915)': Size(412, 915),
+      'Large Device (480 x 1066)': Size(480, 1066),
+    };
+
+    for (final entry in testDevices.entries) {
+      testWidgets('UserNameSetupScreen responsive rendering on ${entry.key}',
+          (WidgetTester tester) async {
+        tester.view.physicalSize =
+            Size(entry.value.width * 2, entry.value.height * 2);
+        tester.view.devicePixelRatio = 2.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        FlutterErrorDetails? error;
+        final oldHandler = FlutterError.onError;
+        FlutterError.onError = (details) => error = details;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: const UserNameSetupScreen(),
+          ),
+        );
+        await tester.pumpAndSettle();
+        FlutterError.onError = oldHandler;
+
+        expect(error, isNull, reason: 'Layout overflowed on ${entry.key}');
+        expect(find.text('স্বাগতম! আপনাকে কী নামে ডাকবো?'), findsOneWidget);
+        expect(find.text('এগিয়ে যান'), findsOneWidget);
+      });
+
+      testWidgets('ProfileScreen responsive rendering on ${entry.key}',
+          (WidgetTester tester) async {
+        tester.view.physicalSize =
+            Size(entry.value.width * 2, entry.value.height * 2);
+        tester.view.devicePixelRatio = 2.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        FlutterErrorDetails? error;
+        final oldHandler = FlutterError.onError;
+        FlutterError.onError = (details) => error = details;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: const ProfileScreen(),
+          ),
+        );
+        await tester.pumpAndSettle();
+        FlutterError.onError = oldHandler;
+
+        expect(error, isNull,
+            reason: 'ProfileScreen layout overflowed on ${entry.key}');
+        expect(find.text('অ্যাপের তথ্য রিসেট করুন'), findsOneWidget);
+      });
+    }
   });
 }

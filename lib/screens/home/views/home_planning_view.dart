@@ -29,7 +29,9 @@ class HomePlanningView extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    'সুপ্রভাত',
+                    AppState.instance.userName.isNotEmpty
+                        ? 'সুপ্রভাত, ${AppState.instance.userName}'
+                        : 'সুপ্রভাত',
                     style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: AppColors.onSurface,
@@ -52,7 +54,107 @@ class HomePlanningView extends StatelessWidget {
               const DailyMessageCard(),
 
               // 1. HERO PRE-PREGNANCY PREPARATION CARD
-              Container(
+              if (!periodData.isSetup)
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    boxShadow: AppShadows.subtleCard,
+                    border: Border.all(color: AppColors.borderCard),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFECB17),
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.full),
+                            ),
+                            child: const Text(
+                              'গর্ভধারণের প্রস্তুতি',
+                              style: TextStyle(
+                                fontFamily: 'Noto Sans Bengali',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF584400),
+                              ),
+                            ),
+                          ),
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: const BoxDecoration(
+                              color: AppColors.surfaceContainerLow,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.favorite_rounded,
+                              color: AppColors.primary,
+                              size: 22,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'আজকের প্রস্তুতি ও উর্বর সময়',
+                        style: TextStyle(
+                          fontFamily: 'Noto Sans Bengali',
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'আপনার সর্বশেষ পিরিয়ডের শুরুর দিন ও গড় সাইকেল দৈর্ঘ্য দিয়ে ওভুলেশন ও গর্ভধারণের সেরা দিনগুলো জানুন।',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'Noto Sans Bengali',
+                          fontSize: 13,
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 44,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const PeriodTrackerScreen(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.calendar_month_rounded,
+                              size: 18),
+                          label: const Text(
+                            'পিরিয়ড ও সাইকেল সেটআপ করুন',
+                            style: TextStyle(
+                              fontFamily: 'Noto Sans Bengali',
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [

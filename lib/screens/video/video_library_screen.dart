@@ -111,8 +111,10 @@ class _VideoLibraryScreenState extends State<VideoLibraryScreen> {
           borderRadius:
               BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
         ),
-        child: Column(
-          children: [
+        child: SafeArea(
+          top: false,
+          child: Column(
+            children: [
             Center(
               child: Container(
                 width: 40,
@@ -352,7 +354,8 @@ class _VideoLibraryScreenState extends State<VideoLibraryScreen> {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildActionBtn(IconData icon, String label, {VoidCallback? onTap}) {
@@ -394,11 +397,27 @@ class _VideoLibraryScreenState extends State<VideoLibraryScreen> {
 
     final feedVideos = filteredVideos;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(vertical: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.surfaceContainerLowest,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        title: Text(
+          AppLocalization.isEnglish ? 'Video Library' : 'ভিডিও লাইব্রেরি',
+          style: const TextStyle(
+            fontFamily: 'Noto Sans Bengali',
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onSurface,
+          ),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
           // Category Pills
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -596,12 +615,15 @@ class _VideoLibraryScreenState extends State<VideoLibraryScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  AppLocalization.isEnglish ? 'Popular Series' : 'ভিডিও সিরিজ',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
+                Expanded(
+                  child: Text(
+                    AppLocalization.isEnglish ? 'Popular Series' : 'ভিডিও সিরিজ',
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
                 ),
                 Text(
                   AppLocalization.isEnglish
@@ -719,18 +741,23 @@ class _VideoLibraryScreenState extends State<VideoLibraryScreen> {
                                 const SizedBox(height: 4),
                                 Row(
                                   children: [
-                                    Text(
-                                      video.channel,
-                                      style: const TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.primary,
+                                    Flexible(
+                                      child: Text(
+                                        video.channel,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.primary,
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
                                       '•  ${video.views}',
+                                      maxLines: 1,
                                       style: const TextStyle(
                                         fontFamily: 'Inter',
                                         fontSize: 11,
@@ -769,6 +796,7 @@ class _VideoLibraryScreenState extends State<VideoLibraryScreen> {
           const SizedBox(height: 24),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

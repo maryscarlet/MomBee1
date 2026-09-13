@@ -26,10 +26,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           borderRadius:
               BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
             Center(
               child: Container(
                 width: 40,
@@ -93,7 +96,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 
   void _showEditProfileModal() {
@@ -131,8 +136,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             borderRadius:
                 BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
           ),
-          child: SingleChildScrollView(
-            child: Column(
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -329,7 +336,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   void _showLanguageDialog() {
@@ -413,6 +421,170 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _showResetAppDataDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.warning_amber_rounded,
+                color: AppColors.error,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                AppState.instance.isEnglish
+                    ? 'Reset All App Data?'
+                    : 'অ্যাপের তথ্য রিসেট করবেন?',
+                style: const TextStyle(
+                  fontFamily: 'Noto Sans Bengali',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 17,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              AppState.instance.isEnglish
+                  ? 'Are you sure you want to reset all data?'
+                  : 'আপনি কি নিশ্চিত যে আপনি আপনার সকল তথ্য রিসেট করতে চান?',
+              style: const TextStyle(
+                fontFamily: 'Noto Sans Bengali',
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: AppColors.onSurface,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(
+                  color: AppColors.error.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.remove_circle_outline_rounded,
+                          size: 16, color: AppColors.error),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          AppState.instance.isEnglish
+                              ? 'Your name, age, selected stage, pregnancy/baby data, period tracker logs, water intake, appointments, and marked vaccines will be completely deleted.'
+                              : 'আপনার নাম, বয়স, নির্ধারিত পর্যায়, গর্ভাবস্থা/শিশুর তথ্য, পিরিয়ড লগ, পানির হিসাব, অ্যাপয়েন্টমেন্ট ও টিকার হিসাব সম্পূর্ণ মুছে ফেলা হবে।',
+                          style: const TextStyle(
+                            fontFamily: 'Noto Sans Bengali',
+                            fontSize: 12.5,
+                            color: AppColors.error,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.check_circle_outline_rounded,
+                          size: 16, color: AppColors.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          AppState.instance.isEnglish
+                              ? 'Educational articles, videos, 40-week guide, and baby stages will remain fully accessible.'
+                              : 'প্রয়োজনীয় আর্টিকেল, স্বাস্থ্য ভিডিও, ৪০ সপ্তাহের গাইড ও বেবি স্টেজ তথ্য অপরিবর্তিত থাকবে।',
+                          style: const TextStyle(
+                            fontFamily: 'Noto Sans Bengali',
+                            fontSize: 12.5,
+                            color: AppColors.onSurfaceVariant,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              AppState.instance.isEnglish
+                  ? 'After reset, you will be taken back to the first-time welcome screen.'
+                  : 'রিসেট করার পর আপনাকে স্বাগতম ও নাম নির্ধারণের প্রথম স্ক্রিনে নিয়ে যাওয়া হবে।',
+              style: const TextStyle(
+                fontFamily: 'Noto Sans Bengali',
+                fontSize: 12,
+                color: AppColors.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(
+              AppState.instance.isEnglish ? 'Cancel' : 'বাতিল',
+              style: const TextStyle(
+                fontFamily: 'Noto Sans Bengali',
+                color: AppColors.outline,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              elevation: 0,
+            ),
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              await AppState.instance.resetAllUserData();
+              if (mounted) {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/user-setup',
+                  (route) => false,
+                );
+              }
+            },
+            child: Text(
+              AppState.instance.isEnglish ? 'Reset Data' : 'তথ্য রিসেট করুন',
+              style: const TextStyle(
+                fontFamily: 'Noto Sans Bengali',
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showEditHealthInfoModal() {
     final journey = AppState.instance.selectedJourney;
 
@@ -445,10 +617,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 borderRadius:
                     BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+              child: SafeArea(
+                top: false,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                   Center(
                     child: Container(
                       width: 40,
@@ -611,7 +786,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ],
               ),
-            );
+            ),
+          ),
+        );
           },
         ),
       );
@@ -637,10 +814,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               borderRadius:
                   BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            child: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                 Center(
                   child: Container(
                     width: 40,
@@ -784,7 +964,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ),
-      );
+      ),
+    ),
+  );
     } else {
       _showInfoDialog(
         'স্বাস্থ্য তথ্য',
@@ -1004,7 +1186,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        AppState.instance.userName,
+                        AppState.instance.userName.isNotEmpty
+                            ? AppState.instance.userName
+                            : (AppState.instance.isEnglish
+                                ? 'MomBee Member'
+                                : 'মমবি সদস্য'),
                         style: Theme.of(context)
                             .textTheme
                             .headlineLarge
@@ -1024,8 +1210,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 8,
+                        runSpacing: 6,
                         children: [
                           ActionChip(
                             avatar: Icon(
@@ -1055,7 +1244,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             side: BorderSide.none,
                             onPressed: _showChangeJourneyDialog,
                           ),
-                          const SizedBox(width: 8),
                           ActionChip(
                             avatar: const Icon(Icons.edit_rounded,
                                 size: 14, color: Color(0xFF745B00)),
@@ -1206,8 +1394,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _SettingsItem(
                       icon: Icons.person_outline_rounded,
                       title: AppLocalization.editNameAndAge,
-                      subtitle:
-                          '${AppState.instance.userName}, ${toBanglaDigits(AppState.instance.userAge)} ${AppLocalization.yearsLabel}',
+                      subtitle: AppState.instance.userName.isNotEmpty
+                          ? '${AppState.instance.userName}, ${toBanglaDigits(AppState.instance.userAge)} ${AppLocalization.yearsLabel}'
+                          : (AppState.instance.isEnglish
+                              ? 'Set name & age'
+                              : 'নাম ও বয়স যোগ করুন'),
                       subtitleColor: AppColors.primary,
                       onTap: _showEditProfileModal,
                     ),
@@ -1281,6 +1472,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       title: AppLocalization.language,
                       subtitle: currentLang,
                       onTap: _showLanguageDialog,
+                    ),
+                    _SettingsItem(
+                      icon: Icons.restart_alt_rounded,
+                      title: AppState.instance.isEnglish
+                          ? 'Reset App Data'
+                          : 'অ্যাপের তথ্য রিসেট করুন',
+                      subtitle: AppState.instance.isEnglish
+                          ? 'Clear all personal data & restore setup'
+                          : 'সকল তথ্য মুছে নতুন করে শুরু করুন',
+                      subtitleColor: AppColors.error,
+                      onTap: _showResetAppDataDialog,
                     ),
                     _SettingsItem(
                       icon: Icons.security_rounded,

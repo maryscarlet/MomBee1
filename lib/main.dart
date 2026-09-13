@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'theme/app_theme.dart';
 import 'state/app_state.dart';
 import 'screens/splash/splash_screen.dart';
+import 'screens/onboarding/user_name_setup_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/journey/journey_selection_screen.dart';
 import 'screens/main_navigation_shell.dart';
@@ -33,6 +34,7 @@ class MomBeeApp extends StatelessWidget {
       initialRoute: '/splash',
       routes: {
         '/splash': (context) => const SplashScreen(),
+        '/user-setup': (context) => const UserNameSetupScreen(),
         '/onboarding': (context) => const OnboardingScreen(),
         '/journey-selection': (context) => const JourneySelectionScreen(),
         '/main': (context) => const MainNavigationShell(),

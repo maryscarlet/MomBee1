@@ -23,6 +23,19 @@ class LocalStorageService {
   static const String _kUserNameKey = 'mombee_user_name';
   static const String _kUserAgeKey = 'mombee_user_age';
   static const String _kUserAvatarUrlKey = 'mombee_user_avatar_url';
+  static const String _kInitialSetupCompleteKey =
+      'mombee_initial_setup_complete';
+
+  // ---------------- INITIAL SETUP STATUS ----------------
+  static Future<void> saveInitialSetupComplete(bool complete) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kInitialSetupCompleteKey, complete);
+  }
+
+  static Future<bool> isInitialSetupComplete() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_kInitialSetupCompleteKey) ?? false;
+  }
 
   // ---------------- JOURNEY TYPE ----------------
   static Future<void> saveJourneyType(JourneyType journey) async {
@@ -84,19 +97,15 @@ class LocalStorageService {
 
   static Future<PeriodData> getPeriodData() async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
     final jsonString = prefs.getString(_kPeriodKey);
     if (jsonString == null) {
       return PeriodData(
-        lastPeriodDate: DateTime.now().subtract(const Duration(days: 14)),
+        lastPeriodDate: DateTime.now(),
         cycleLength: 28,
         periodDuration: 5,
-        loggedPeriodDays: [
-          DateTime.now().subtract(const Duration(days: 14)),
-          DateTime.now().subtract(const Duration(days: 13)),
-          DateTime.now().subtract(const Duration(days: 12)),
-          DateTime.now().subtract(const Duration(days: 11)),
-          DateTime.now().subtract(const Duration(days: 10)),
-        ],
+        loggedPeriodDays: const [],
+        isSetup: false,
       );
     }
     try {
@@ -104,7 +113,8 @@ class LocalStorageService {
       return PeriodData.fromJson(map);
     } catch (_) {
       return PeriodData(
-        lastPeriodDate: DateTime.now().subtract(const Duration(days: 14)),
+        lastPeriodDate: DateTime.now(),
+        isSetup: false,
       );
     }
   }
@@ -122,7 +132,7 @@ class LocalStorageService {
     final today = DateTime.now().toIso8601String().split('T').first;
     final savedDate = prefs.getString(_kWaterDateKey);
     if (savedDate == today) {
-      return prefs.getInt(_kWaterGlassesKey) ?? 6;
+      return prefs.getInt(_kWaterGlassesKey) ?? 0;
     } else {
       await prefs.setString(_kWaterDateKey, today);
       await prefs.setInt(_kWaterGlassesKey, 0);
@@ -141,22 +151,7 @@ class LocalStorageService {
     final prefs = await SharedPreferences.getInstance();
     final jsonString = prefs.getString(_kAppointmentsKey);
     if (jsonString == null) {
-      return [
-        Appointment(
-          id: '1',
-          doctorName: 'ডা. নাসরিন আক্তার (গাইনি বিশেষজ্ঞ)',
-          dateTime: DateTime.now().add(const Duration(days: 1, hours: 2)),
-          location: 'স্কয়ার হাসপাতাল, ঢাকা',
-          notes: 'রুটিন স্বাস্থ্য পরীক্ষা ও কাউন্সেলিং।',
-        ),
-        Appointment(
-          id: '2',
-          doctorName: 'ডা. রফিকুজ্জামান (শিশুরোগ বিশেষজ্ঞ)',
-          dateTime: DateTime.now().add(const Duration(days: 14, hours: 5)),
-          location: 'পপুলার ডায়াগনস্টিক সেন্টার',
-          notes: 'নিয়মিত ফলোআপ ও পুষ্টি পরামর্শ।',
-        ),
-      ];
+      return [];
     }
     try {
       final decoded = jsonDecode(jsonString) as List<dynamic>;
@@ -225,6 +220,11 @@ class LocalStorageService {
     await prefs.setString(_kUserAvatarUrlKey, avatarUrl);
   }
 
+  static Future<void> saveUserName(String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kUserNameKey, name);
+  }
+
   static Future<String?> getUserName() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_kUserNameKey);
@@ -238,5 +238,23 @@ class LocalStorageService {
   static Future<String?> getUserAvatarUrl() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_kUserAvatarUrlKey);
+  }
+
+  // ---------------- RESET ALL USER DATA ----------------
+  static Future<void> resetAllUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_kJourneyTypeKey);
+    await prefs.remove(_kPregnancyKey);
+    await prefs.remove(_kBabyKey);
+    await prefs.remove(_kPeriodKey);
+    await prefs.remove(_kWaterGlassesKey);
+    await prefs.remove(_kWaterDateKey);
+    await prefs.remove(_kAppointmentsKey);
+    await prefs.remove(_kVaccinesKey);
+    await prefs.remove(_kDailyMessageDismissedDateKey);
+    await prefs.remove(_kUserNameKey);
+    await prefs.remove(_kUserAgeKey);
+    await prefs.remove(_kUserAvatarUrlKey);
+    await prefs.remove(_kInitialSetupCompleteKey);
   }
 }

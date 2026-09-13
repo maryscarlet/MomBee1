@@ -14,6 +14,9 @@ class AppState extends ChangeNotifier {
   bool _isInitialized = false;
   bool get isInitialized => _isInitialized;
 
+  bool _hasCompletedInitialSetup = false;
+  bool get hasCompletedInitialSetup => _hasCompletedInitialSetup;
+
   // ---------------- ACTIVE JOURNEY ----------------
   JourneyType _selectedJourney = JourneyType.pregnant;
   JourneyType get selectedJourney => _selectedJourney;
@@ -31,7 +34,7 @@ class AppState extends ChangeNotifier {
 
   // ---------------- BABY STATE ----------------
   BabyData _babyData = BabyData(
-    birthDate: DateTime.now().subtract(const Duration(days: 132)),
+    birthDate: DateTime.now(),
     isSetup: false,
   );
   BabyData get babyData => _babyData;
@@ -39,14 +42,15 @@ class AppState extends ChangeNotifier {
 
   // ---------------- PERIOD STATE ----------------
   PeriodData _periodData = PeriodData(
-    lastPeriodDate: DateTime.now().subtract(const Duration(days: 14)),
+    lastPeriodDate: DateTime.now(),
     cycleLength: 28,
     periodDuration: 5,
+    isSetup: false,
   );
   PeriodData get periodData => _periodData;
 
   // ---------------- WATER STATE ----------------
-  int _waterGlasses = 6;
+  int _waterGlasses = 0;
   final int dailyWaterGoal = 10;
   int get waterGlasses => _waterGlasses;
   double get waterProgress => (_waterGlasses / dailyWaterGoal).clamp(0.0, 1.0);
@@ -65,7 +69,7 @@ class AppState extends ChangeNotifier {
   bool get isEnglish => _language == 'English';
 
   // ---------------- USER PROFILE ----------------
-  String _userName = 'সাদিয়া রহমান';
+  String _userName = '';
   int _userAge = 26;
   String _userAvatarUrl =
       'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&auto=format&fit=crop&q=80';
@@ -107,6 +111,9 @@ class AppState extends ChangeNotifier {
     _language = await LocalStorageService.getLanguage();
     _dailyMessageDismissedDate =
         await LocalStorageService.getDailyMessageDismissedDate();
+
+    _hasCompletedInitialSetup =
+        await LocalStorageService.isInitialSetupComplete();
 
     final savedName = await LocalStorageService.getUserName();
     if (savedName != null && savedName.isNotEmpty) {
@@ -206,10 +213,29 @@ class AppState extends ChangeNotifier {
     int? cycleLength,
     int? periodDuration,
   }) async {
+    final newLmp = lastPeriodDate != null
+        ? DateTime(lastPeriodDate.year, lastPeriodDate.month, lastPeriodDate.day)
+        : _periodData.normalizedLmp;
+    final newCycleLength = cycleLength ?? _periodData.cycleLength;
+    final newPeriodDuration = periodDuration ?? _periodData.periodDuration;
+
+    // When LMP or duration is updated, synchronize baseline logged period days
+    List<DateTime> updatedLoggedDays;
+    if (lastPeriodDate != null || periodDuration != null) {
+      updatedLoggedDays = List.generate(
+        newPeriodDuration,
+        (i) => DateTime(newLmp.year, newLmp.month, newLmp.day + i),
+      );
+    } else {
+      updatedLoggedDays = _periodData.loggedPeriodDays;
+    }
+
     _periodData = _periodData.copyWith(
-      lastPeriodDate: lastPeriodDate ?? _periodData.lastPeriodDate,
-      cycleLength: cycleLength ?? _periodData.cycleLength,
-      periodDuration: periodDuration ?? _periodData.periodDuration,
+      lastPeriodDate: newLmp,
+      cycleLength: newCycleLength,
+      periodDuration: newPeriodDuration,
+      loggedPeriodDays: updatedLoggedDays,
+      isSetup: true,
     );
     await LocalStorageService.savePeriodData(_periodData);
     notifyListeners();
@@ -229,7 +255,10 @@ class AppState extends ChangeNotifier {
       list.add(cleanDate);
     }
 
-    _periodData = _periodData.copyWith(loggedPeriodDays: list);
+    _periodData = _periodData.copyWith(
+      loggedPeriodDays: list,
+      isSetup: true,
+    );
     await LocalStorageService.savePeriodData(_periodData);
     notifyListeners();
   }
@@ -289,6 +318,42 @@ class AppState extends ChangeNotifier {
   }
 
   // ---------------- USER PROFILE ACTIONS ----------------
+  Future<void> setUserName(String name) async {
+    _userName = name.trim();
+    await LocalStorageService.saveUserName(_userName);
+    notifyListeners();
+  }
+
+  Future<void> completeInitialSetup() async {
+    _hasCompletedInitialSetup = true;
+    await LocalStorageService.saveInitialSetupComplete(true);
+    notifyListeners();
+  }
+
+  Future<void> resetAllUserData() async {
+    await LocalStorageService.resetAllUserData();
+    _userName = '';
+    _userAge = 26;
+    _userAvatarUrl =
+        'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&auto=format&fit=crop&q=80';
+    _hasCompletedInitialSetup = false;
+    _selectedJourney = JourneyType.pregnant;
+    _pregnancyData = const PregnancyData(isSetup: false);
+    _babyData = BabyData(birthDate: DateTime.now(), isSetup: false);
+    _periodData = PeriodData(
+      lastPeriodDate: DateTime.now(),
+      cycleLength: 28,
+      periodDuration: 5,
+      loggedPeriodDays: const [],
+      isSetup: false,
+    );
+    _waterGlasses = 0;
+    _appointments = [];
+    _vaccines = await LocalStorageService.getVaccines();
+    _dailyMessageDismissedDate = null;
+    notifyListeners();
+  }
+
   Future<void> updateProfile({
     required String name,
     required int age,
