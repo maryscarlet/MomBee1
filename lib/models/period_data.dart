@@ -13,72 +13,87 @@ class PeriodData {
     this.pastCycles = const [],
   });
 
+  /// Normalized Last Period Date (midnight)
+  DateTime get normalizedLmp =>
+      DateTime(lastPeriodDate.year, lastPeriodDate.month, lastPeriodDate.day);
+
+  /// Helper calculating exact calendar days between two dates immune to DST / hour shifts
+  static int daysDifference(DateTime from, DateTime to) {
+    final fromUtc = DateTime.utc(from.year, from.month, from.day);
+    final toUtc = DateTime.utc(to.year, to.month, to.day);
+    return toUtc.difference(fromUtc).inDays;
+  }
+
   /// Current day in the menstrual cycle (1 to cycleLength)
   int get currentCycleDay {
     final now = DateTime.now();
     final cleanNow = DateTime(now.year, now.month, now.day);
-    final cleanLmp =
-        DateTime(lastPeriodDate.year, lastPeriodDate.month, lastPeriodDate.day);
-    final difference = cleanNow.difference(cleanLmp).inDays;
-    if (difference < 0) return 1;
-    return (difference % cycleLength) + 1;
+    final diff = daysDifference(normalizedLmp, cleanNow);
+    if (diff < 0) return 1;
+    return (diff % cycleLength) + 1;
   }
 
-  /// Estimated Next Period Date (always on or after today)
+  /// Estimated Next Period Date: First day of last period + cycle length
   DateTime get estimatedNextPeriod {
+    final lmp = normalizedLmp;
+    return DateTime(lmp.year, lmp.month, lmp.day + cycleLength);
+  }
+
+  /// Next Upcoming Period Date (advances to today or future for overdue tracking)
+  DateTime get upcomingNextPeriod {
     final now = DateTime.now();
     final cleanNow = DateTime(now.year, now.month, now.day);
-    final cleanLmp =
-        DateTime(lastPeriodDate.year, lastPeriodDate.month, lastPeriodDate.day);
-    var next = cleanLmp.add(Duration(days: cycleLength));
+    var next = estimatedNextPeriod;
     while (next.isBefore(cleanNow)) {
-      next = next.add(Duration(days: cycleLength));
+      next = DateTime(next.year, next.month, next.day + cycleLength);
     }
     return next;
   }
 
-  /// Estimated Ovulation Day (typically 14 days before next period)
+  /// Estimated Ovulation Day: Approximately 14 days before next expected period
   DateTime get estimatedOvulationDate {
-    return estimatedNextPeriod.subtract(const Duration(days: 14));
+    final next = estimatedNextPeriod;
+    return DateTime(next.year, next.month, next.day - 14);
   }
+
+  /// 1-based cycle day of ovulation (e.g. Day 15 for 28-day cycle: 28 - 14 + 1)
+  int get ovulationCycleDay => cycleLength - 14 + 1;
 
   /// Estimated Fertile Window Start (5 days before ovulation)
   DateTime get fertileWindowStart {
-    return estimatedOvulationDate.subtract(const Duration(days: 5));
+    final ov = estimatedOvulationDate;
+    return DateTime(ov.year, ov.month, ov.day - 5);
   }
 
   /// Estimated Fertile Window End (1 day after ovulation)
   DateTime get fertileWindowEnd {
-    return estimatedOvulationDate.add(const Duration(days: 1));
+    final ov = estimatedOvulationDate;
+    return DateTime(ov.year, ov.month, ov.day + 1);
   }
 
-  /// Checks if a date falls inside fertile window (including recurring future cycles)
+  /// 1-based cycle day for start of fertile window
+  int get fertileStartCycleDay => ovulationCycleDay - 5;
+
+  /// 1-based cycle day for end of fertile window
+  int get fertileEndCycleDay => ovulationCycleDay + 1;
+
+  /// Checks if a date falls inside the fertile window
   bool isFertileDay(DateTime date) {
     final cleanDate = DateTime(date.year, date.month, date.day);
-    final cleanLmp =
-        DateTime(lastPeriodDate.year, lastPeriodDate.month, lastPeriodDate.day);
-    final diff = cleanDate.difference(cleanLmp).inDays;
-    if (diff < 0) return false;
-    final dayInCycle = (diff % cycleLength) + 1;
-    final ovulationCycleDay = cycleLength - 14;
-    final fertileStart = ovulationCycleDay - 5;
-    final fertileEnd = ovulationCycleDay + 1;
-    return dayInCycle >= fertileStart && dayInCycle <= fertileEnd;
+    final diff = daysDifference(normalizedLmp, cleanDate);
+    final dayInCycle = (((diff % cycleLength) + cycleLength) % cycleLength) + 1;
+    return dayInCycle >= fertileStartCycleDay && dayInCycle <= fertileEndCycleDay;
   }
 
-  /// Checks if a date is ovulation day (including recurring future cycles)
+  /// Checks if a date is ovulation day
   bool isOvulationDay(DateTime date) {
     final cleanDate = DateTime(date.year, date.month, date.day);
-    final cleanLmp =
-        DateTime(lastPeriodDate.year, lastPeriodDate.month, lastPeriodDate.day);
-    final diff = cleanDate.difference(cleanLmp).inDays;
-    if (diff < 0) return false;
-    final dayInCycle = (diff % cycleLength) + 1;
-    final ovulationCycleDay = cycleLength - 14;
+    final diff = daysDifference(normalizedLmp, cleanDate);
+    final dayInCycle = (((diff % cycleLength) + cycleLength) % cycleLength) + 1;
     return dayInCycle == ovulationCycleDay;
   }
 
-  /// Checks if a date is a logged or predicted period day (including recurring future cycles)
+  /// Checks if a date is a logged or predicted period day
   bool isPeriodDay(DateTime date) {
     final cleanDate = DateTime(date.year, date.month, date.day);
     // Check logged days
@@ -90,11 +105,8 @@ class PeriodData {
       }
     }
     // Check recurring cycle bleeding window
-    final cleanLmp =
-        DateTime(lastPeriodDate.year, lastPeriodDate.month, lastPeriodDate.day);
-    final diff = cleanDate.difference(cleanLmp).inDays;
-    if (diff < 0) return false;
-    final dayInCycle = (diff % cycleLength) + 1;
+    final diff = daysDifference(normalizedLmp, cleanDate);
+    final dayInCycle = (((diff % cycleLength) + cycleLength) % cycleLength) + 1;
     return dayInCycle <= periodDuration;
   }
 

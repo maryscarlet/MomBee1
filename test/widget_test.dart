@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mombee_app/main.dart';
@@ -20,6 +21,8 @@ import 'package:mombee_app/screens/tracker/appointments_screen.dart';
 import 'package:mombee_app/screens/tracker/vaccination_screen.dart';
 import 'package:mombee_app/screens/tracker/tracker_hub_screen.dart';
 import 'package:mombee_app/screens/profile/profile_screen.dart';
+import 'package:mombee_app/models/video.dart';
+import 'package:mombee_app/screens/video/video_library_screen.dart';
 import 'package:mombee_app/services/local_storage_service.dart';
 import 'package:mombee_app/services/app_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -234,20 +237,23 @@ void main() {
     test('Period Tracker with 28, 30, 32-day cycle calculations', () {
       final baseDate = DateTime(2026, 8, 1);
 
-      // 28-day cycle
+      // 28-day cycle: LMP 2026-08-01 -> Next period = 2026-08-01 + 28 days = 2026-08-29
       final cycle28 = PeriodData(lastPeriodDate: baseDate, cycleLength: 28, periodDuration: 5);
       expect(cycle28.cycleLength, 28);
-      expect(cycle28.estimatedNextPeriod.isAfter(DateTime.now().subtract(const Duration(days: 1))), true);
+      expect(cycle28.estimatedNextPeriod, DateTime(2026, 8, 29));
+      expect(cycle28.upcomingNextPeriod.isAfter(DateTime.now().subtract(const Duration(days: 1))), true);
 
-      // 30-day cycle
+      // 30-day cycle: LMP 2026-08-01 -> Next period = 2026-08-01 + 30 days = 2026-08-31
       final cycle30 = PeriodData(lastPeriodDate: baseDate, cycleLength: 30, periodDuration: 5);
       expect(cycle30.cycleLength, 30);
-      expect(cycle30.estimatedNextPeriod.isAfter(DateTime.now().subtract(const Duration(days: 1))), true);
+      expect(cycle30.estimatedNextPeriod, DateTime(2026, 8, 31));
+      expect(cycle30.upcomingNextPeriod.isAfter(DateTime.now().subtract(const Duration(days: 1))), true);
 
-      // 32-day cycle
+      // 32-day cycle: LMP 2026-08-01 -> Next period = 2026-08-01 + 32 days = 2026-09-02
       final cycle32 = PeriodData(lastPeriodDate: baseDate, cycleLength: 32, periodDuration: 5);
       expect(cycle32.cycleLength, 32);
-      expect(cycle32.estimatedNextPeriod.isAfter(DateTime.now().subtract(const Duration(days: 1))), true);
+      expect(cycle32.estimatedNextPeriod, DateTime(2026, 9, 2));
+      expect(cycle32.upcomingNextPeriod.isAfter(DateTime.now().subtract(const Duration(days: 1))), true);
     });
 
     testWidgets('PeriodTrackerScreen renders cycle day, stats, and calendar',
@@ -259,7 +265,7 @@ void main() {
 
       expect(find.text('পিরিয়ড ট্র্যাকার'), findsOneWidget);
       expect(find.text('ওভুলেশন ডে'), findsWidgets);
-      expect(find.text('উর্বর সময়'), findsOneWidget);
+      expect(find.text('উর্বর সময় (আনুমানিক)'), findsOneWidget);
       expect(find.text('স্থায়িত্ব'), findsOneWidget);
     });
   });
@@ -498,6 +504,290 @@ void main() {
       expect(savedName, 'তানিয়া সুলতানা');
       expect(savedAge, 29);
       expect(savedAvatar, 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300');
+    });
+  });
+
+  // =========================================================================
+  // 9. PERIOD TRACKER COMPREHENSIVE CALCULATION & EDGE CASE AUDIT
+  // =========================================================================
+  group('9. Period Tracker Comprehensive Calculation & Edge Case Audit', () {
+    test('Standard calculations across cycle lengths 21, 24, 28, 30, 32, and 35 days', () {
+      final baseDate = DateTime(2026, 6, 1);
+
+      // Cycle 21 days
+      final c21 = PeriodData(lastPeriodDate: baseDate, cycleLength: 21, periodDuration: 4);
+      expect(c21.cycleLength, 21);
+      expect(c21.estimatedNextPeriod, DateTime(2026, 6, 22)); // LMP + 21
+      expect(c21.estimatedOvulationDate, DateTime(2026, 6, 8)); // Next - 14
+      expect(c21.ovulationCycleDay, 8); // (21 - 14) + 1
+      expect(c21.fertileWindowStart, DateTime(2026, 6, 3)); // Ovulation - 5
+      expect(c21.fertileWindowEnd, DateTime(2026, 6, 9)); // Ovulation + 1
+      expect(c21.isOvulationDay(DateTime(2026, 6, 8)), isTrue);
+      expect(c21.isFertileDay(DateTime(2026, 6, 3)), isTrue);
+      expect(c21.isFertileDay(DateTime(2026, 6, 9)), isTrue);
+      expect(c21.isPeriodDay(DateTime(2026, 6, 1)), isTrue);
+      expect(c21.isPeriodDay(DateTime(2026, 6, 4)), isTrue);
+      expect(c21.isPeriodDay(DateTime(2026, 6, 5)), isFalse);
+
+      // Cycle 24 days
+      final c24 = PeriodData(lastPeriodDate: baseDate, cycleLength: 24, periodDuration: 5);
+      expect(c24.cycleLength, 24);
+      expect(c24.estimatedNextPeriod, DateTime(2026, 6, 25)); // LMP + 24
+      expect(c24.estimatedOvulationDate, DateTime(2026, 6, 11)); // Next - 14
+      expect(c24.ovulationCycleDay, 11);
+      expect(c24.fertileWindowStart, DateTime(2026, 6, 6));
+      expect(c24.fertileWindowEnd, DateTime(2026, 6, 12));
+      expect(c24.isOvulationDay(DateTime(2026, 6, 11)), isTrue);
+      expect(c24.isFertileDay(DateTime(2026, 6, 6)), isTrue);
+      expect(c24.isFertileDay(DateTime(2026, 6, 12)), isTrue);
+
+      // Cycle 28 days
+      final c28 = PeriodData(lastPeriodDate: baseDate, cycleLength: 28, periodDuration: 5);
+      expect(c28.cycleLength, 28);
+      expect(c28.estimatedNextPeriod, DateTime(2026, 6, 29)); // LMP + 28
+      expect(c28.estimatedOvulationDate, DateTime(2026, 6, 15)); // Next - 14
+      expect(c28.ovulationCycleDay, 15);
+      expect(c28.fertileWindowStart, DateTime(2026, 6, 10));
+      expect(c28.fertileWindowEnd, DateTime(2026, 6, 16));
+      expect(c28.isOvulationDay(DateTime(2026, 6, 15)), isTrue);
+      expect(c28.isFertileDay(DateTime(2026, 6, 10)), isTrue);
+      expect(c28.isFertileDay(DateTime(2026, 6, 16)), isTrue);
+
+      // Cycle 30 days
+      final c30 = PeriodData(lastPeriodDate: baseDate, cycleLength: 30, periodDuration: 5);
+      expect(c30.cycleLength, 30);
+      expect(c30.estimatedNextPeriod, DateTime(2026, 7, 1)); // LMP + 30
+      expect(c30.estimatedOvulationDate, DateTime(2026, 6, 17)); // Next - 14
+      expect(c30.ovulationCycleDay, 17);
+      expect(c30.fertileWindowStart, DateTime(2026, 6, 12));
+      expect(c30.fertileWindowEnd, DateTime(2026, 6, 18));
+      expect(c30.isOvulationDay(DateTime(2026, 6, 17)), isTrue);
+      expect(c30.isFertileDay(DateTime(2026, 6, 12)), isTrue);
+      expect(c30.isFertileDay(DateTime(2026, 6, 18)), isTrue);
+
+      // Cycle 32 days
+      final c32 = PeriodData(lastPeriodDate: baseDate, cycleLength: 32, periodDuration: 5);
+      expect(c32.cycleLength, 32);
+      expect(c32.estimatedNextPeriod, DateTime(2026, 7, 3)); // LMP + 32
+      expect(c32.estimatedOvulationDate, DateTime(2026, 6, 19)); // Next - 14
+      expect(c32.ovulationCycleDay, 19);
+      expect(c32.fertileWindowStart, DateTime(2026, 6, 14));
+      expect(c32.fertileWindowEnd, DateTime(2026, 6, 20));
+      expect(c32.isOvulationDay(DateTime(2026, 6, 19)), isTrue);
+      expect(c32.isFertileDay(DateTime(2026, 6, 14)), isTrue);
+      expect(c32.isFertileDay(DateTime(2026, 6, 20)), isTrue);
+
+      // Cycle 35 days
+      final c35 = PeriodData(lastPeriodDate: baseDate, cycleLength: 35, periodDuration: 6);
+      expect(c35.cycleLength, 35);
+      expect(c35.estimatedNextPeriod, DateTime(2026, 7, 6)); // LMP + 35
+      expect(c35.estimatedOvulationDate, DateTime(2026, 6, 22)); // Next - 14
+      expect(c35.ovulationCycleDay, 22);
+      expect(c35.fertileWindowStart, DateTime(2026, 6, 17));
+      expect(c35.fertileWindowEnd, DateTime(2026, 6, 23));
+      expect(c35.isOvulationDay(DateTime(2026, 6, 22)), isTrue);
+      expect(c35.isFertileDay(DateTime(2026, 6, 17)), isTrue);
+      expect(c35.isFertileDay(DateTime(2026, 6, 23)), isTrue);
+    });
+
+    test('Period duration handling (3 to 10 days boundaries)', () {
+      final baseDate = DateTime(2026, 5, 10);
+
+      // 3 days duration
+      final d3 = PeriodData(lastPeriodDate: baseDate, cycleLength: 28, periodDuration: 3);
+      expect(d3.isPeriodDay(DateTime(2026, 5, 10)), isTrue); // Day 1
+      expect(d3.isPeriodDay(DateTime(2026, 5, 12)), isTrue); // Day 3
+      expect(d3.isPeriodDay(DateTime(2026, 5, 13)), isFalse); // Day 4
+
+      // 7 days duration
+      final d7 = PeriodData(lastPeriodDate: baseDate, cycleLength: 28, periodDuration: 7);
+      expect(d7.isPeriodDay(DateTime(2026, 5, 10)), isTrue);
+      expect(d7.isPeriodDay(DateTime(2026, 5, 16)), isTrue); // Day 7
+      expect(d7.isPeriodDay(DateTime(2026, 5, 17)), isFalse); // Day 8
+
+      // 10 days duration
+      final d10 = PeriodData(lastPeriodDate: baseDate, cycleLength: 28, periodDuration: 10);
+      expect(d10.isPeriodDay(DateTime(2026, 5, 10)), isTrue);
+      expect(d10.isPeriodDay(DateTime(2026, 5, 19)), isTrue); // Day 10
+      expect(d10.isPeriodDay(DateTime(2026, 5, 20)), isFalse); // Day 11
+    });
+
+    test('Reactive state updates when cycle length or LMP date changes', () async {
+      // Initialize with 28-day cycle, LMP 2026-04-01
+      await AppState.instance.updatePeriodDetails(
+        lastPeriodDate: DateTime(2026, 4, 1),
+        cycleLength: 28,
+        periodDuration: 5,
+      );
+
+      var p = AppState.instance.periodData;
+      expect(p.cycleLength, 28);
+      expect(p.estimatedNextPeriod, DateTime(2026, 4, 29));
+      expect(p.estimatedOvulationDate, DateTime(2026, 4, 15));
+
+      // User modifies cycle length to 32 days
+      await AppState.instance.updatePeriodDetails(
+        cycleLength: 32,
+      );
+      p = AppState.instance.periodData;
+      expect(p.cycleLength, 32);
+      expect(p.estimatedNextPeriod, DateTime(2026, 5, 3)); // Apr 1 + 32 = May 3
+      expect(p.estimatedOvulationDate, DateTime(2026, 4, 19)); // May 3 - 14 = Apr 19
+
+      // User modifies LMP date to 2026-04-10
+      await AppState.instance.updatePeriodDetails(
+        lastPeriodDate: DateTime(2026, 4, 10),
+      );
+      p = AppState.instance.periodData;
+      expect(p.lastPeriodDate, DateTime(2026, 4, 10));
+      expect(p.estimatedNextPeriod, DateTime(2026, 5, 12)); // Apr 10 + 32 = May 12
+      expect(p.estimatedOvulationDate, DateTime(2026, 4, 28)); // May 12 - 14 = Apr 28
+    });
+
+    test('Edge case: Leap year 2024 (29 days in February)', () {
+      final leapLmp = DateTime(2024, 2, 10);
+      final leapCycle = PeriodData(lastPeriodDate: leapLmp, cycleLength: 28, periodDuration: 5);
+
+      // In 2024 leap year: Feb 10 + 28 days = March 9, 2024 (Feb has 29 days: 19 days in Feb + 9 in Mar)
+      expect(leapCycle.estimatedNextPeriod, DateTime(2024, 3, 9));
+      // Ovulation: March 9 - 14 days = Feb 24, 2024
+      expect(leapCycle.estimatedOvulationDate, DateTime(2024, 2, 24));
+      expect(leapCycle.isOvulationDay(DateTime(2024, 2, 24)), isTrue);
+      expect(leapCycle.isFertileDay(DateTime(2024, 2, 19)), isTrue); // Feb 24 - 5
+      expect(leapCycle.isFertileDay(DateTime(2024, 2, 25)), isTrue); // Feb 24 + 1
+    });
+
+    test('Edge case: Non-leap year 2025 (28 days in February)', () {
+      final nonLeapLmp = DateTime(2025, 2, 10);
+      final nonLeapCycle = PeriodData(lastPeriodDate: nonLeapLmp, cycleLength: 28, periodDuration: 5);
+
+      // In 2025 non-leap year: Feb 10 + 28 days = March 10, 2025 (Feb has 28 days: 18 days in Feb + 10 in Mar)
+      expect(nonLeapCycle.estimatedNextPeriod, DateTime(2025, 3, 10));
+      // Ovulation: March 10 - 14 days = Feb 24, 2025
+      expect(nonLeapCycle.estimatedOvulationDate, DateTime(2025, 2, 24));
+      expect(nonLeapCycle.isOvulationDay(DateTime(2025, 2, 24)), isTrue);
+    });
+
+    test('Edge case: Year boundary transition (December 2025 into January 2026)', () {
+      final yearEndLmp = DateTime(2025, 12, 20);
+      final yearEndCycle = PeriodData(lastPeriodDate: yearEndLmp, cycleLength: 28, periodDuration: 5);
+
+      // Dec 20 + 28 days = Jan 17, 2026 (Dec has 31 days: 11 days in Dec + 17 in Jan)
+      expect(yearEndCycle.estimatedNextPeriod, DateTime(2026, 1, 17));
+      // Ovulation: Jan 17 - 14 days = Jan 3, 2026
+      expect(yearEndCycle.estimatedOvulationDate, DateTime(2026, 1, 3));
+      // Fertile window: Jan 3 - 5 days = Dec 29, 2025 through Jan 4, 2026
+      expect(yearEndCycle.fertileWindowStart, DateTime(2025, 12, 29));
+      expect(yearEndCycle.fertileWindowEnd, DateTime(2026, 1, 4));
+
+      expect(yearEndCycle.isOvulationDay(DateTime(2026, 1, 3)), isTrue);
+      expect(yearEndCycle.isFertileDay(DateTime(2025, 12, 29)), isTrue);
+      expect(yearEndCycle.isFertileDay(DateTime(2026, 1, 4)), isTrue);
+      expect(yearEndCycle.isPeriodDay(DateTime(2025, 12, 20)), isTrue);
+      expect(yearEndCycle.isPeriodDay(DateTime(2026, 1, 17)), isTrue); // Next cycle period day 1
+    });
+
+    test('Calendar multi-cycle recurrence for past and future month navigation', () {
+      final lmp = DateTime(2026, 6, 1);
+      final p = PeriodData(lastPeriodDate: lmp, cycleLength: 28, periodDuration: 5);
+
+      // Cycle 1: 2026-06-01 to 2026-06-28
+      expect(p.isPeriodDay(DateTime(2026, 6, 1)), isTrue);
+      expect(p.isOvulationDay(DateTime(2026, 6, 15)), isTrue);
+
+      // Cycle 2 (future month navigation): 2026-06-29 to 2026-07-26
+      expect(p.isPeriodDay(DateTime(2026, 6, 29)), isTrue);
+      expect(p.isOvulationDay(DateTime(2026, 7, 13)), isTrue);
+
+      // Cycle 0 (past month navigation): 2026-05-04 to 2026-05-31
+      expect(p.isPeriodDay(DateTime(2026, 5, 4)), isTrue);
+      expect(p.isOvulationDay(DateTime(2026, 5, 18)), isTrue);
+    });
+  });
+
+  // =========================================================================
+  // 10. MOMBEE YOUTUBE VIDEO LIBRARY & URL CONNECTION AUDIT
+  // =========================================================================
+  group('10. MomBee YouTube Video Library & URL Connection Audit', () {
+    test('All 24 authentic MomBee videos have valid YouTube URLs and non-empty titles', () {
+      expect(mombeeVideos.length, 24);
+
+      for (final video in mombeeVideos) {
+        expect(video.title.isNotEmpty, isTrue);
+        expect(video.category.isNotEmpty, isTrue);
+        expect(video.youtubeUrl.startsWith('https://youtu.be/'), isTrue);
+        expect(video.videoId.length, 11); // Standard 11-character YouTube ID
+        expect(video.thumbnailUrl, contains(video.videoId));
+
+        // URL parsing validation
+        final parsedUri = Uri.tryParse(video.youtubeUrl);
+        expect(parsedUri, isNotNull);
+        expect(parsedUri!.scheme, 'https');
+        expect(parsedUri.host, 'youtu.be');
+      }
+    });
+
+    test('Specific YouTube links mapping verification', () {
+      expect(mombeeVideos[0].youtubeUrl, 'https://youtu.be/YC9tQ0RJhP0');
+      expect(mombeeVideos[1].youtubeUrl, 'https://youtu.be/Lgyzo0t6KVk');
+      expect(mombeeVideos[2].youtubeUrl, 'https://youtu.be/TMzWkui9KTU');
+      expect(mombeeVideos[3].youtubeUrl, 'https://youtu.be/cVjAW7XZc5E');
+      expect(mombeeVideos[4].youtubeUrl, 'https://youtu.be/bvIFvTUzkHQ');
+      expect(mombeeVideos[5].youtubeUrl, 'https://youtu.be/qFAiEyQD-Ik');
+      expect(mombeeVideos[6].youtubeUrl, 'https://youtu.be/mHMQCswVe9g');
+      expect(mombeeVideos[7].youtubeUrl, 'https://youtu.be/5FLx_YaKy5I');
+      expect(mombeeVideos[8].youtubeUrl, 'https://youtu.be/JUi26C-uEvI');
+      expect(mombeeVideos[9].youtubeUrl, 'https://youtu.be/1y_WNUV_2lI');
+      expect(mombeeVideos[10].youtubeUrl, 'https://youtu.be/nHjoAQOI_to');
+      expect(mombeeVideos[11].youtubeUrl, 'https://youtu.be/MyUN8Ah2OaQ');
+      expect(mombeeVideos[12].youtubeUrl, 'https://youtu.be/rW4jsUFL7U8');
+      expect(mombeeVideos[13].youtubeUrl, 'https://youtu.be/3Y6Xi_Cs3zk');
+      expect(mombeeVideos[14].youtubeUrl, 'https://youtu.be/wu7Gg4IYj4E');
+      expect(mombeeVideos[15].youtubeUrl, 'https://youtu.be/dB7Z2RPJNnM');
+      expect(mombeeVideos[16].youtubeUrl, 'https://youtu.be/_rD0smbi2dQ');
+      expect(mombeeVideos[17].youtubeUrl, 'https://youtu.be/dB7Z2RPJNnM');
+      expect(mombeeVideos[18].youtubeUrl, 'https://youtu.be/fle9PzounNQ');
+      expect(mombeeVideos[19].youtubeUrl, 'https://youtu.be/e1Ze3_rTkZI');
+      expect(mombeeVideos[20].youtubeUrl, 'https://youtu.be/bgHRde-PXTM');
+      expect(mombeeVideos[21].youtubeUrl, 'https://youtu.be/DXfU4DEVkBA');
+      expect(mombeeVideos[22].youtubeUrl, 'https://youtu.be/QBxy5Pd2ImA');
+      expect(mombeeVideos[23].youtubeUrl, 'https://youtu.be/XHavriIZM-E');
+    });
+
+    testWidgets('VideoLibraryScreen renders and displays category chips',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: VideoLibraryScreen())),
+      );
+      await tester.pumpAndSettle();
+
+      // Verify category chips exist
+      expect(find.text('সব'), findsOneWidget);
+      expect(find.text('গর্ভাবস্থা'), findsOneWidget);
+      expect(find.text('প্যারেন্টিং'), findsOneWidget);
+      expect(find.text('শিশুর যত্ন'), findsOneWidget);
+      expect(find.text('পুষ্টি ও খাবার'), findsOneWidget);
+
+      // Verify featured video title renders (both in featured card and in feed)
+      expect(find.text(mombeeVideos[0].title), findsWidgets);
+
+      // Tap 'প্যারেন্টিং' filter
+      await tester.tap(find.text('প্যারেন্টিং'));
+      await tester.pumpAndSettle();
+
+      // Should show parenting videos
+      expect(find.text(mombeeVideos[1].title), findsWidgets);
+    });
+
+    test('Verify all 24 YouTube URLs have valid syntax and valid YouTube video ID patterns', () {
+      final youtubeIdPattern = RegExp(r'^[a-zA-Z0-9_-]{11}$');
+      for (final video in mombeeVideos) {
+        final uri = Uri.parse(video.youtubeUrl);
+        expect(uri.scheme, 'https');
+        expect(uri.host, 'youtu.be');
+        expect(video.videoId, matches(youtubeIdPattern));
+        expect(video.thumbnailUrl, 'https://img.youtube.com/vi/${video.videoId}/hqdefault.jpg');
+      }
     });
   });
 }

@@ -202,14 +202,14 @@ class AppState extends ChangeNotifier {
 
   // ---------------- PERIOD ACTIONS ----------------
   Future<void> updatePeriodDetails({
-    required DateTime lastPeriodDate,
-    required int cycleLength,
-    required int periodDuration,
+    DateTime? lastPeriodDate,
+    int? cycleLength,
+    int? periodDuration,
   }) async {
     _periodData = _periodData.copyWith(
-      lastPeriodDate: lastPeriodDate,
-      cycleLength: cycleLength,
-      periodDuration: periodDuration,
+      lastPeriodDate: lastPeriodDate ?? _periodData.lastPeriodDate,
+      cycleLength: cycleLength ?? _periodData.cycleLength,
+      periodDuration: periodDuration ?? _periodData.periodDuration,
     );
     await LocalStorageService.savePeriodData(_periodData);
     notifyListeners();

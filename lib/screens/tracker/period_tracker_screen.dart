@@ -3,6 +3,7 @@ import '../../theme/app_theme.dart';
 import '../../models/period_data.dart';
 import '../../models/pregnancy_data.dart';
 import '../../state/app_state.dart';
+import '../../services/app_localization.dart';
 
 class PeriodTrackerScreen extends StatefulWidget {
   const PeriodTrackerScreen({super.key});
@@ -355,8 +356,12 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> {
                           const SizedBox(height: 6),
                           Text(
                             periodData.isFertileDay(DateTime.now())
-                                ? 'গর্ভধারণের সম্ভাবনাময় উর্বর সময় (Fertile Window)'
-                                : 'পরবর্তী পিরিয়ডের সম্ভাব্য তারিখ',
+                                ? (AppLocalization.isEnglish
+                                    ? 'Fertile Window (High Conception Chance)'
+                                    : 'গর্ভধারণের সম্ভাবনাময় উর্বর সময় (Fertile Window)')
+                                : (AppLocalization.isEnglish
+                                    ? 'Next Expected Period'
+                                    : 'পরবর্তী পিরিয়ডের সম্ভাব্য তারিখ'),
                             style: const TextStyle(
                               fontFamily: 'Noto Sans Bengali',
                               fontSize: 13,
@@ -366,7 +371,7 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${toBanglaDigits(periodData.estimatedNextPeriod.day)}/${toBanglaDigits(periodData.estimatedNextPeriod.month)}/${toBanglaDigits(periodData.estimatedNextPeriod.year)}',
+                            '${toBanglaDigits(periodData.upcomingNextPeriod.day)}/${toBanglaDigits(periodData.upcomingNextPeriod.month)}/${toBanglaDigits(periodData.upcomingNextPeriod.year)}',
                             style: const TextStyle(
                               fontFamily: 'Noto Sans Bengali',
                               fontSize: 14,
@@ -386,29 +391,42 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> {
               Row(
                 children: [
                   _buildStatCard(
-                    title: 'ওভুলেশন ডে',
+                    title: AppLocalization.isEnglish
+                        ? 'Ovulation (Est.)'
+                        : 'ওভুলেশন (আনুমানিক)',
                     value:
                         '${toBanglaDigits(periodData.estimatedOvulationDate.day)}/${toBanglaDigits(periodData.estimatedOvulationDate.month)}',
-                    subtitle: 'সর্বাধিক উর্বর',
+                    subtitle: AppLocalization.isEnglish
+                        ? 'Peak Fertility'
+                        : 'সর্বাধিক উর্বর দিন',
                     color: const Color(0xFF745B00),
                     bgColor: const Color(0xFFFFF6D6),
                     icon: Icons.star_rounded,
                   ),
                   const SizedBox(width: 10),
                   _buildStatCard(
-                    title: 'উর্বর সময়',
-                    value:
-                        '${toBanglaDigits(periodData.fertileWindowStart.day)}-${toBanglaDigits(periodData.fertileWindowEnd.day)}',
-                    subtitle: 'গর্ভধারণ উইন্ডো',
+                    title: AppLocalization.isEnglish
+                        ? 'Fertile (Est.)'
+                        : 'উর্বর সময় (আনুমানিক)',
+                    value: periodData.fertileWindowStart.month ==
+                            periodData.fertileWindowEnd.month
+                        ? '${toBanglaDigits(periodData.fertileWindowStart.day)} - ${toBanglaDigits(periodData.fertileWindowEnd.day)}'
+                        : '${toBanglaDigits(periodData.fertileWindowStart.day)}/${toBanglaDigits(periodData.fertileWindowStart.month)} - ${toBanglaDigits(periodData.fertileWindowEnd.day)}/${toBanglaDigits(periodData.fertileWindowEnd.month)}',
+                    subtitle: AppLocalization.isEnglish
+                        ? 'Conception Window'
+                        : 'গর্ভধারণ উইন্ডো',
                     color: const Color(0xFF7B1FA2),
                     bgColor: const Color(0xFFF3E5F5),
                     icon: Icons.favorite_rounded,
                   ),
                   const SizedBox(width: 10),
                   _buildStatCard(
-                    title: 'স্থায়িত্ব',
-                    value: '${toBanglaDigits(periodData.periodDuration)} দিন',
-                    subtitle: 'রক্তস্রাবের সময়',
+                    title: AppLocalization.isEnglish ? 'Duration' : 'স্থায়িত্ব',
+                    value:
+                        '${toBanglaDigits(periodData.periodDuration)} ${AppLocalization.days}',
+                    subtitle: AppLocalization.isEnglish
+                        ? 'Bleeding Days'
+                        : 'রক্তস্রাবের সময়',
                     color: AppColors.primary,
                     bgColor: AppColors.primary.withValues(alpha: 0.1),
                     icon: Icons.water_drop_rounded,
@@ -492,11 +510,21 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> {
                       runSpacing: 6,
                       alignment: WrapAlignment.center,
                       children: [
-                        _buildLegendItem(AppColors.primary, 'পিরিয়ডের দিন'),
                         _buildLegendItem(
-                            const Color(0xFFBA68C8), 'উর্বর উইন্ডো'),
+                            AppColors.primary,
+                            AppLocalization.isEnglish
+                                ? 'Period'
+                                : 'পিরিয়ডের দিন'),
                         _buildLegendItem(
-                            const Color(0xFFFECB17), 'ওভুলেশন ডে'),
+                            const Color(0xFFBA68C8),
+                            AppLocalization.isEnglish
+                                ? 'Fertile Window'
+                                : 'উর্বর উইন্ডো'),
+                        _buildLegendItem(
+                            const Color(0xFFFECB17),
+                            AppLocalization.isEnglish
+                                ? 'Ovulation Day'
+                                : 'ওভুলেশন ডে'),
                       ],
                     ),
                   ],
@@ -518,12 +546,14 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> {
                   await AppState.instance.togglePeriodDay(DateTime.now());
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
+                      SnackBar(
                         content: Text(
-                          'আজকের দিনের পিরিয়ড স্ট্যাটাস আপডেট হয়েছে!',
-                          style: TextStyle(fontFamily: 'Noto Sans Bengali'),
+                          AppLocalization.isEnglish
+                              ? "Today's period status updated!"
+                              : 'আজকের দিনের পিরিয়ড স্ট্যাটাস আপডেট হয়েছে!',
+                          style: const TextStyle(fontFamily: 'Noto Sans Bengali'),
                         ),
-                        duration: Duration(seconds: 2),
+                        duration: const Duration(seconds: 2),
                       ),
                     );
                   }
@@ -531,8 +561,12 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> {
                 icon: const Icon(Icons.water_drop_rounded, size: 20),
                 label: Text(
                   periodData.isPeriodDay(DateTime.now())
-                      ? 'আজকের পিরিয়ড সমাপ্ত চিহ্নিত করুন'
-                      : 'আজকে পিরিয়ড শুরু হয়েছে চিহ্নিত করুন',
+                      ? (AppLocalization.isEnglish
+                          ? 'Mark Today Period Ended'
+                          : 'আজকের পিরিয়ড সমাপ্ত চিহ্নিত করুন')
+                      : (AppLocalization.isEnglish
+                          ? 'Mark Period Started Today'
+                          : 'আজকে পিরিয়ড শুরু হয়েছে চিহ্নিত করুন'),
                   style: const TextStyle(
                     fontFamily: 'Noto Sans Bengali',
                     fontWeight: FontWeight.w700,
@@ -549,16 +583,18 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> {
                   borderRadius: BorderRadius.circular(AppRadius.md),
                   border: Border.all(color: AppColors.borderCard),
                 ),
-                child: const Row(
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info_outline_rounded,
+                    const Icon(Icons.info_outline_rounded,
                         color: AppColors.outline, size: 20),
-                    SizedBox(width: 10),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'এগুলো আনুমানিক হিসাব। মাসিক চক্র ব্যক্তি ভেদে পরিবর্তিত হতে পারে। গর্ভনিরোধক বা চিকিৎসা সিদ্ধান্তের একমাত্র ভিত্তি হিসেবে এই হিসাব ব্যবহার করবেন না।',
-                        style: TextStyle(
+                        AppLocalization.isEnglish
+                            ? 'Medical Disclaimer: Period dates, ovulation, and fertile window predictions are scientific estimates based on standard menstrual cycle calculations. Actual cycle timing may vary based on individual bodily conditions, physical and mental stress, hormonal fluctuations, medication, or cycle irregularity. This information should not be used as a definitive contraceptive method or as a substitute for professional medical advice. For family planning or health concerns, please consult a qualified healthcare specialist.'
+                            : 'মেডিকেল সতর্কবার্তা: পিরিয়ডের সম্ভাব্য তারিখ, ওভুলেশন এবং উর্বর সময় (ফার্টিল উইন্ডো)-এর সকল তথ্য চিকিৎসাবিজ্ঞানভিত্তিক আনুমানিক হিসাব। শারীরিক অবস্থা, মানসিক চাপ, হরমোনের তারতম্য, দৈনন্দিন জীবনযাত্রা বা অসুস্থতার কারণে প্রতিটি নারীর মাসিক চক্র ব্যক্তিভেদে পরিবর্তিত হতে পারে। এই হিসাবকে কোনো সুনির্দিষ্ট গর্ভনিরোধক পদ্ধতি (জন্মনিয়ন্ত্রণ) বা চূড়ান্ত চিকিৎসা পরামর্শের বিকল্প হিসেবে ব্যবহার করবেন না। পরিবার পরিকল্পনা বা যেকোনো স্বাস্থ্য সমস্যার ক্ষেত্রে অবশ্যই বিশেষজ্ঞ চিকিৎসকের পরামর্শ নিন।',
+                        style: const TextStyle(
                           fontFamily: 'Noto Sans Bengali',
                           fontSize: 12,
                           height: 1.5,
