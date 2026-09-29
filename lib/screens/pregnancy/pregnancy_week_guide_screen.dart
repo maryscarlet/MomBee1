@@ -5,6 +5,7 @@ import '../../data/pregnancy_weeks_data.dart';
 import '../../state/app_state.dart';
 import '../../models/article.dart';
 import '../../widgets/article_widgets.dart';
+import '../../widgets/fetal_development_visual.dart';
 
 class PregnancyWeekGuideScreen extends StatefulWidget {
   final int initialWeek;
@@ -229,84 +230,13 @@ class _PregnancyWeekGuideScreenState extends State<PregnancyWeekGuideScreen> {
                   key: ValueKey<int>(_selectedWeek),
                   padding: const EdgeInsets.all(20.0),
                   children: [
-                    // 1. BABY SIZE & HERO MILESTONE
-                    Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(AppRadius.lg),
-                    boxShadow: AppShadows.subtleCard,
-                    border: Border.all(color: AppColors.borderCard),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 76,
-                        height: 76,
-                        decoration: BoxDecoration(
-                          color: AppColors.secondaryFixed,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 8,
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.child_care_rounded,
-                          color: Color(0xFF745B00),
-                          size: 40,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                currentWeekData.trimesterBangla,
-                                style: const TextStyle(
-                                  fontFamily: 'Noto Sans Bengali',
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'শিশুর আকার: ${currentWeekData.babySizeComparison}',
-                              style: const TextStyle(
-                                fontFamily: 'Noto Sans Bengali',
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.onSurface,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'দৈর্ঘ্য: ${currentWeekData.babyLength} • ওজন: ${currentWeekData.babyWeight}',
-                              style: const TextStyle(
-                                fontFamily: 'Noto Sans Bengali',
-                                fontSize: 12,
-                                color: AppColors.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 18),
+                    // 1. DYNAMIC BABY / FETAL DEVELOPMENT VISUAL & SIZE
+                    FetalDevelopmentVisual(
+                      weekNumber: _selectedWeek,
+                      isCompact: false,
+                      showMilestones: false,
+                    ),
+                    const SizedBox(height: 18),
 
                 // 2. BABY'S DEVELOPMENT (শিশুর বিকাশ)
                 _buildSectionCard(

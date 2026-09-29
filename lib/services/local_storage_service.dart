@@ -15,6 +15,13 @@ class LocalStorageService {
   static const String _kPeriodKey = 'mombee_period_data';
   static const String _kWaterGlassesKey = 'mombee_water_glasses';
   static const String _kWaterDateKey = 'mombee_water_date';
+  static const String _kWaterGlassSizeKey = 'mombee_water_glass_size_ml';
+  static const String _kWaterDailyTargetKey = 'mombee_water_daily_target_ml';
+  static const String _kNotificationsEnabledKey = 'mombee_notifications_enabled';
+  static const String _kNotifWaterKey = 'mombee_notif_water';
+  static const String _kNotifDailyCareKey = 'mombee_notif_daily_care';
+  static const String _kNotifAppointmentsKey = 'mombee_notif_appointments';
+  static const String _kNotifVaccinesKey = 'mombee_notif_vaccines';
   static const String _kAppointmentsKey = 'mombee_appointments_list';
   static const String _kVaccinesKey = 'mombee_vaccines_list';
   static const String _kLanguageKey = 'mombee_app_language';
@@ -140,6 +147,77 @@ class LocalStorageService {
     }
   }
 
+  static Future<void> saveWaterGlassSizeMl(int sizeMl) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_kWaterGlassSizeKey, sizeMl);
+  }
+
+  static Future<int> getWaterGlassSizeMl() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_kWaterGlassSizeKey) ?? 250;
+  }
+
+  static Future<void> saveWaterDailyTargetMl(int targetMl) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_kWaterDailyTargetKey, targetMl);
+  }
+
+  static Future<int> getWaterDailyTargetMl() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_kWaterDailyTargetKey) ?? 2500;
+  }
+
+  // ---------------- NOTIFICATION PREFERENCES ----------------
+  static Future<void> saveNotificationsEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kNotificationsEnabledKey, enabled);
+  }
+
+  static Future<bool> getNotificationsEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_kNotificationsEnabledKey) ?? true;
+  }
+
+  static Future<void> saveWaterNotifEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kNotifWaterKey, enabled);
+  }
+
+  static Future<bool> getWaterNotifEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_kNotifWaterKey) ?? true;
+  }
+
+  static Future<void> saveDailyCareNotifEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kNotifDailyCareKey, enabled);
+  }
+
+  static Future<bool> getDailyCareNotifEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_kNotifDailyCareKey) ?? true;
+  }
+
+  static Future<void> saveAppointmentsNotifEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kNotifAppointmentsKey, enabled);
+  }
+
+  static Future<bool> getAppointmentsNotifEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_kNotifAppointmentsKey) ?? true;
+  }
+
+  static Future<void> saveVaccinesNotifEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kNotifVaccinesKey, enabled);
+  }
+
+  static Future<bool> getVaccinesNotifEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_kNotifVaccinesKey) ?? true;
+  }
+
   // ---------------- APPOINTMENTS ----------------
   static Future<void> saveAppointments(List<Appointment> list) async {
     final prefs = await SharedPreferences.getInstance();
@@ -249,6 +327,13 @@ class LocalStorageService {
     await prefs.remove(_kPeriodKey);
     await prefs.remove(_kWaterGlassesKey);
     await prefs.remove(_kWaterDateKey);
+    await prefs.remove(_kWaterGlassSizeKey);
+    await prefs.remove(_kWaterDailyTargetKey);
+    await prefs.remove(_kNotificationsEnabledKey);
+    await prefs.remove(_kNotifWaterKey);
+    await prefs.remove(_kNotifDailyCareKey);
+    await prefs.remove(_kNotifAppointmentsKey);
+    await prefs.remove(_kNotifVaccinesKey);
     await prefs.remove(_kAppointmentsKey);
     await prefs.remove(_kVaccinesKey);
     await prefs.remove(_kDailyMessageDismissedDateKey);

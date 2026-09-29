@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../models/pregnancy_data.dart';
 import '../../state/app_state.dart';
+import '../../widgets/fetal_development_visual.dart';
 import '../pregnancy/pregnancy_week_guide_screen.dart';
 
 class PregnancyTrackerScreen extends StatefulWidget {
@@ -289,192 +290,345 @@ class _PregnancyTrackerScreenState extends State<PregnancyTrackerScreen> {
           body: ListView(
             padding: const EdgeInsets.all(20.0),
             children: [
-              // 1. HERO PREGNANCY CARD
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerLowest,
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
-                  boxShadow: AppShadows.subtleCard,
-                  border: Border.all(color: AppColors.borderCard),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.secondaryFixed,
-                            borderRadius: BorderRadius.circular(12),
+              if (!AppState.instance.isPregnancySetup) ...[
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    boxShadow: AppShadows.subtleCard,
+                    border: Border.all(color: AppColors.borderCard),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryContainer
+                                  .withValues(alpha: 0.3),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.calendar_month_rounded,
+                              color: AppColors.primary,
+                              size: 24,
+                            ),
                           ),
-                          child: Text(
-                            trimesterStr,
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'গর্ভধারণের তথ্য সেটআপ করুন',
+                                  style: TextStyle(
+                                    fontFamily: 'Noto Sans Bengali',
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.onSurface,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'আপনার সঠিক ট্র্যাকিং ও পরামর্শ পেতে LMP দিন',
+                                  style: TextStyle(
+                                    fontFamily: 'Noto Sans Bengali',
+                                    fontSize: 12,
+                                    color: AppColors.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 44,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppRadius.md),
+                            ),
+                          ),
+                          onPressed: _showSetupPregnancyDialog,
+                          child: const Text(
+                            'সেটআপ শুরু করুন',
+                            style: TextStyle(
+                              fontFamily: 'Noto Sans Bengali',
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ] else ...[
+                // 1. HERO PREGNANCY CARD
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    boxShadow: AppShadows.subtleCard,
+                    border: Border.all(color: AppColors.borderCard),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.secondaryFixed,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              trimesterStr,
+                              style: const TextStyle(
+                                fontFamily: 'Noto Sans Bengali',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF745B00),
+                              ),
+                            ),
+                          ),
+                          Text(
+                            'বাকি ${toBanglaDigits(remaining)} দিন',
                             style: const TextStyle(
                               fontFamily: 'Noto Sans Bengali',
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF745B00),
+                              color: AppColors.primary,
                             ),
-                          ),
-                        ),
-                        Text(
-                          'বাকি ${toBanglaDigits(remaining)} দিন',
-                          style: const TextStyle(
-                            fontFamily: 'Noto Sans Bengali',
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-
-                    RichText(
-                      text: TextSpan(
-                        style: const TextStyle(
-                          fontFamily: 'Noto Sans Bengali',
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.onSurface,
-                        ),
-                        children: [
-                          const TextSpan(text: 'আপনি এখন '),
-                          TextSpan(
-                            text: '${toBanglaDigits(currentWeek)} সপ্তাহ',
-                            style: const TextStyle(color: AppColors.primary),
-                          ),
-                          TextSpan(
-                            text: ' ${toBanglaDigits(currentDay)} দিনে',
-                            style: const TextStyle(
-                                fontSize: 16,
-                                color: AppColors.onSurfaceVariant),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 14),
 
-                    // Progress Bar
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(AppRadius.full),
-                      child: Container(
-                        height: 10,
-                        width: double.infinity,
-                        color: AppColors.surfaceVariant,
-                        child: FractionallySizedBox(
-                          alignment: Alignment.centerLeft,
-                          widthFactor: progress,
-                          child: Container(
+                      RichText(
+                        text: TextSpan(
+                          style: const TextStyle(
+                            fontFamily: 'Noto Sans Bengali',
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.onSurface,
+                          ),
+                          children: [
+                            const TextSpan(text: 'আপনি এখন '),
+                            TextSpan(
+                              text: '${toBanglaDigits(currentWeek)} সপ্তাহ',
+                              style: const TextStyle(color: AppColors.primary),
+                            ),
+                            TextSpan(
+                              text: ' ${toBanglaDigits(currentDay)} দিনে',
+                              style: const TextStyle(
+                                  fontSize: 16,
+                                  color: AppColors.onSurfaceVariant),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Week + Day Counter and Total Days Badges
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius:
-                                  BorderRadius.circular(AppRadius.full),
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: AppColors.primary.withValues(alpha: 0.25),
+                              ),
+                            ),
+                            child: Text(
+                              AppState.instance.pregnancyProgressAgeText,
+                              style: const TextStyle(
+                                fontFamily: 'Noto Sans Bengali',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF6D6),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: const Color(0xFFFECB17)
+                                    .withValues(alpha: 0.6),
+                              ),
+                            ),
+                            child: Text(
+                              AppState.instance.pregnancyTotalDaysText,
+                              style: const TextStyle(
+                                fontFamily: 'Noto Sans Bengali',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF745B00),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Progress Bar
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.full),
+                        child: Container(
+                          height: 10,
+                          width: double.infinity,
+                          color: AppColors.surfaceVariant,
+                          child: FractionallySizedBox(
+                            alignment: Alignment.centerLeft,
+                            widthFactor: progress,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.full),
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          '১ম সপ্তাহ',
-                          style: TextStyle(
-                            fontFamily: 'Noto Sans Bengali',
-                            fontSize: 11,
-                            color: AppColors.onSurfaceVariant,
-                          ),
-                        ),
-                        Text(
-                          '${toBanglaDigits((progress * 100).round())}% সম্পন্ন',
-                          style: const TextStyle(
-                            fontFamily: 'Noto Sans Bengali',
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        const Text(
-                          '৪০তম সপ্তাহ',
-                          style: TextStyle(
-                            fontFamily: 'Noto Sans Bengali',
-                            fontSize: 11,
-                            color: AppColors.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-
-                    // Open 40-Week Guide Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.md),
-                          ),
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => PregnancyWeekGuideScreen(
-                                initialWeek: currentWeek,
-                              ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            '১ম সপ্তাহ',
+                            style: TextStyle(
+                              fontFamily: 'Noto Sans Bengali',
+                              fontSize: 11,
+                              color: AppColors.onSurfaceVariant,
                             ),
-                          );
-                        },
-                        icon: const Icon(Icons.auto_stories_rounded, size: 20),
-                        label: Text(
-                          '${toBanglaDigits(currentWeek)}তম সপ্তাহের পূর্ণ গাইড দেখুন',
-                          style: const TextStyle(
-                            fontFamily: 'Noto Sans Bengali',
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
+                          ),
+                          Text(
+                            '${toBanglaDigits((progress * 100).round())}% সম্পন্ন',
+                            style: const TextStyle(
+                              fontFamily: 'Noto Sans Bengali',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          const Text(
+                            '৪০তম সপ্তাহ',
+                            style: TextStyle(
+                              fontFamily: 'Noto Sans Bengali',
+                              fontSize: 11,
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+
+                      // Open 40-Week Guide Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppRadius.md),
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => PregnancyWeekGuideScreen(
+                                  initialWeek: currentWeek,
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.auto_stories_rounded, size: 20),
+                          label: Text(
+                            '${toBanglaDigits(currentWeek)}তম সপ্তাহের পূর্ণ গাইড দেখুন',
+                            style: const TextStyle(
+                              fontFamily: 'Noto Sans Bengali',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Dynamic Fetal Development Visual Card
+                FetalDevelopmentVisual(
+                  weekNumber: currentWeek,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PregnancyWeekGuideScreen(
+                          initialWeek: currentWeek,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 20),
+
+                // 2. IMPORTANT DETAILS BENTO
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildBentoCard(
+                        icon: Icons.cake_rounded,
+                        title: 'সম্ভাব্য প্রসবের তারিখ',
+                        value:
+                            '${toBanglaDigits(edd.day)}/${toBanglaDigits(edd.month)}/${toBanglaDigits(edd.year)}',
+                        color: AppColors.primary,
+                        bgColor: AppColors.primary.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildBentoCard(
+                        icon: Icons.calendar_today_rounded,
+                        title: 'অতিক্রান্ত সময়',
+                        value:
+                            '${toBanglaDigits(AppState.instance.totalPregnancyDays)} দিন',
+                        color: const Color(0xFF745B00),
+                        bgColor: const Color(0xFFFFF6D6),
                       ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 20),
-
-              // 2. IMPORTANT DETAILS BENTO
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildBentoCard(
-                      icon: Icons.cake_rounded,
-                      title: 'সম্ভাব্য প্রসবের তারিখ',
-                      value:
-                          '${toBanglaDigits(edd.day)}/${toBanglaDigits(edd.month)}/${toBanglaDigits(edd.year)}',
-                      color: AppColors.primary,
-                      bgColor: AppColors.primary.withValues(alpha: 0.1),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildBentoCard(
-                      icon: Icons.calendar_today_rounded,
-                      title: 'অতিক্রান্ত সময়',
-                      value: '${toBanglaDigits(currentWeek * 7)} দিন',
-                      color: const Color(0xFF745B00),
-                      bgColor: const Color(0xFFFFF6D6),
-                    ),
-                  ),
-                ],
-              ),
+                const SizedBox(height: 20),
+              ],
               const SizedBox(height: 20),
 
               // 3. ALL WEEKS BROWSER CTA

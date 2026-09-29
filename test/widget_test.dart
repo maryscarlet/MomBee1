@@ -15,6 +15,7 @@ import 'package:mombee_app/screens/journey/journey_selection_screen.dart';
 import 'package:mombee_app/screens/main_navigation_shell.dart';
 import 'package:mombee_app/screens/pregnancy/pregnancy_week_guide_screen.dart';
 import 'package:mombee_app/screens/tracker/period_tracker_screen.dart';
+import 'package:mombee_app/screens/tracker/pregnancy_tracker_screen.dart';
 import 'package:mombee_app/screens/tracker/baby_development_screen.dart';
 import 'package:mombee_app/screens/tracker/appointments_screen.dart';
 import 'package:mombee_app/screens/tracker/vaccination_screen.dart';
@@ -24,10 +25,19 @@ import 'package:mombee_app/models/video.dart';
 import 'package:mombee_app/screens/video/video_library_screen.dart';
 import 'package:mombee_app/screens/learn/learn_hub_screen.dart';
 import 'package:mombee_app/screens/onboarding/user_name_setup_screen.dart';
+import 'package:mombee_app/models/fetal_stage_visual_data.dart';
+import 'package:mombee_app/widgets/fetal_development_visual.dart';
+import 'package:mombee_app/screens/home/home_pregnant_screen.dart';
 import 'package:mombee_app/data/vaccines_data.dart';
 import 'package:mombee_app/services/local_storage_service.dart';
 import 'package:mombee_app/services/app_localization.dart';
 import 'package:mombee_app/theme/app_theme.dart';
+import 'package:mombee_app/widgets/water_tracker_modal.dart';
+import 'package:mombee_app/widgets/daily_message_card.dart';
+import 'package:mombee_app/models/appointment.dart';
+import 'package:mombee_app/models/vaccine_item.dart';
+import 'package:mombee_app/services/daily_message_service.dart';
+import 'package:mombee_app/services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -1219,4 +1229,786 @@ void main() {
       });
     }
   });
+
+  group('14. Dynamic Baby Development Visuals & Single Source of Truth Audit', () {
+    test('All 40 weeks map deterministically to 10 developmental stages', () {
+      for (int week = 1; week <= 40; week++) {
+        final stage = FetalStageVisualData.forWeek(week);
+        expect(stage.stageNumber, inInclusiveRange(1, 10));
+        expect(week, greaterThanOrEqualTo(stage.weekStart));
+        expect(week, lessThanOrEqualTo(stage.weekEnd));
+        expect(stage.stageTitleBangla.isNotEmpty, isTrue);
+        expect(stage.descriptionBangla.isNotEmpty, isTrue);
+        expect(stage.milestonesBangla.isNotEmpty, isTrue);
+      }
+
+      // Explicit Milestone Weeks Verification
+      // Week 8 -> Stage 2
+      final stageW8 = FetalStageVisualData.forWeek(8);
+      expect(stageW8.stageNumber, 2);
+      expect(stageW8.stageTitleBangla, 'প্রাথমিক অঙ্গ গঠন ও হৃদস্পন্দন');
+      expect(stageW8.stageBadgeBangla, 'ক্ষুদ্র ভ্রূণ পর্যায়');
+
+      // Week 12 -> Stage 3
+      final stageW12 = FetalStageVisualData.forWeek(12);
+      expect(stageW12.stageNumber, 3);
+      expect(stageW12.stageTitleBangla, 'ফিটাস পর্যায় ও মুখের স্পষ্ট রূপরেখা');
+      expect(stageW12.stageBadgeBangla, '১ম ট্রাইমেস্টার সমাপনী');
+
+      // Week 22 -> Stage 6
+      final stageW22 = FetalStageVisualData.forWeek(22);
+      expect(stageW22.stageNumber, 6);
+      expect(stageW22.stageTitleBangla, 'ভায়াবিলিটি মাইলফলক ও ইন্দ্রিয় সক্রিয়তা');
+      expect(stageW22.stageBadgeBangla, 'জীবনীশক্তি সঞ্চার');
+
+      // Week 30 -> Stage 8
+      final stageW30 = FetalStageVisualData.forWeek(30);
+      expect(stageW30.stageNumber, 8);
+      expect(stageW30.stageTitleBangla, 'দ্রুত বৃদ্ধি ও ত্বকের চর্বি সঞ্চয়');
+      expect(stageW30.stageBadgeBangla, 'শারীরিক পরিপক্বতা');
+
+      // Week 36 -> Stage 9
+      final stageW36 = FetalStageVisualData.forWeek(36);
+      expect(stageW36.stageNumber, 9);
+      expect(stageW36.stageTitleBangla, 'প্রসবকালীন অবস্থান ও ফুসফুসের পূর্ণতা');
+      expect(stageW36.stageBadgeBangla, 'প্রসব প্রস্তুতি পর্ব');
+
+      // Week 40 -> Stage 10
+      final stageW40 = FetalStageVisualData.forWeek(40);
+      expect(stageW40.stageNumber, 10);
+      expect(stageW40.stageTitleBangla, 'পূর্ণ মেয়াদী সুস্থ শিশু (প্রস্তুত)');
+      expect(stageW40.stageBadgeBangla, 'পূর্ণ মেয়াদী (Full Term)');
+    });
+
+    testWidgets('FetalDevelopmentVisual renders stage details, fruit size, and medical disclaimer',
+        (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const Scaffold(
+            body: SingleChildScrollView(
+              child: FetalDevelopmentVisual(weekNumber: 22),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Verify Stage 6 header and title
+      expect(find.textContaining('স্টেজ ৬'), findsOneWidget);
+      expect(find.text('জীবনীশক্তি সঞ্চার'), findsOneWidget);
+      expect(find.text('ভায়াবিলিটি মাইলফলক ও ইন্দ্রিয় সক্রিয়তা'), findsOneWidget);
+
+      // Verify Baby Size Comparison
+      expect(find.textContaining('পেঁপে'), findsOneWidget);
+
+      // Verify Milestones
+      expect(find.textContaining('ফুসফুসে অ্যালভিওলাই'), findsOneWidget);
+
+      // Verify Medical Safety Disclaimer
+      expect(
+        find.text(
+            'চিত্রটি আনুমানিক ভ্রূণের বৃদ্ধির চিত্ররূপ এবং এটি সরাসরি আল্ট্রাসনোগ্রাফি বা নির্ভুল ডায়াগনস্টিক স্ক্যান নয়।'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Single Source of Truth: LMP synchronization across Home, Tracker, and Profile',
+        (WidgetTester tester) async {
+      await AppState.instance.setJourney(JourneyType.pregnant);
+
+      // Set LMP = 21 weeks and 3 days ago (150 days) -> exactly Week 22, Day 4
+      final lmpDate = DateTime.now().subtract(const Duration(days: 150));
+      await AppState.instance.updatePregnancyWithLMP(lmpDate);
+
+      expect(AppState.instance.currentPregnancyWeek, 22);
+      expect(AppState.instance.currentFetalStage.stageNumber, 6);
+
+      // 1. Home Screen check
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const Scaffold(body: HomePregnantScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+          find.byWidgetPredicate((w) =>
+              w is RichText && w.text.toPlainText().contains('২২ সপ্তাহে')),
+          findsOneWidget);
+      expect(find.text('২২তম সপ্তাহ সম্পর্কে জানুন'), findsOneWidget);
+      expect(find.text('ভায়াবিলিটি মাইলফলক ও ইন্দ্রিয় সক্রিয়তা'), findsOneWidget);
+
+      // 2. Pregnancy Tracker Screen check
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const PregnancyTrackerScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+          find.byWidgetPredicate((w) =>
+              w is RichText && w.text.toPlainText().contains('২২ সপ্তাহ')),
+          findsOneWidget);
+      expect(find.text('২২তম সপ্তাহের পূর্ণ গাইড দেখুন'), findsOneWidget);
+      expect(find.text('ভায়াবিলিটি মাইলফলক ও ইন্দ্রিয় সক্রিয়তা'), findsOneWidget);
+
+      // 3. Profile Screen check
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const ProfileScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('২২'), findsWidgets);
+    });
+
+    testWidgets('Reactive UI updates when LMP changes without restart',
+        (WidgetTester tester) async {
+      await AppState.instance.setJourney(JourneyType.pregnant);
+
+      // Set Week 8 initially (52 days ago)
+      final lmp8Weeks = DateTime.now().subtract(const Duration(days: 52));
+      await AppState.instance.updatePregnancyWithLMP(lmp8Weeks);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const Scaffold(body: HomePregnantScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+          find.byWidgetPredicate((w) =>
+              w is RichText && w.text.toPlainText().contains('৮ সপ্তাহে')),
+          findsOneWidget);
+      expect(find.text('৮তম সপ্তাহ সম্পর্কে জানুন'), findsOneWidget);
+      expect(find.text('প্রাথমিক অঙ্গ গঠন ও হৃদস্পন্দন'), findsOneWidget);
+
+      // Dynamically update LMP to Week 36 (248 days ago)
+      final lmp36Weeks = DateTime.now().subtract(const Duration(days: 248));
+      await AppState.instance.updatePregnancyWithLMP(lmp36Weeks);
+      await tester.pumpAndSettle();
+
+      // Verify immediate reactive update to Week 36
+      expect(
+          find.byWidgetPredicate((w) =>
+              w is RichText && w.text.toPlainText().contains('৩৬ সপ্তাহে')),
+          findsOneWidget);
+      expect(find.text('৩৬তম সপ্তাহ সম্পর্কে জানুন'), findsOneWidget);
+      expect(find.text('প্রসবকালীন অবস্থান ও ফুসফুসের পূর্ণতা'), findsOneWidget);
+      expect(find.text('৮তম সপ্তাহ সম্পর্কে জানুন'), findsNothing);
+    });
+
+    // Multi-Device Responsive Layout Tests for FetalDevelopmentVisual
+    final testDevices = <String, Size>{
+      'iPhone SE / Small Screen (320 x 568)': const Size(320, 568),
+      'Standard Phone (360 x 640)': const Size(360, 640),
+      'Google Pixel 6a (411.4 x 891.4)': const Size(411.4, 891.4),
+      'Modern Tall Device (412 x 915)': const Size(412, 915),
+      'Large Device (480 x 1066)': const Size(480, 1066),
+    };
+
+    for (final entry in testDevices.entries) {
+      testWidgets('FetalDevelopmentVisual responsive rendering on ${entry.key}',
+          (WidgetTester tester) async {
+        tester.view.physicalSize =
+            Size(entry.value.width * 2, entry.value.height * 2);
+        tester.view.devicePixelRatio = 2.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        FlutterErrorDetails? error;
+        final oldHandler = FlutterError.onError;
+        FlutterError.onError = (details) => error = details;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: const Scaffold(
+              body: SingleChildScrollView(
+                padding: EdgeInsets.all(16),
+                child: FetalDevelopmentVisual(weekNumber: 22),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        FlutterError.onError = oldHandler;
+
+        expect(error, isNull,
+            reason: 'FetalDevelopmentVisual layout overflowed on ${entry.key}');
+        expect(find.text('ভায়াবিলিটি মাইলফলক ও ইন্দ্রিয় সক্রিয়তা'), findsOneWidget);
+      });
+    }
+
+    // =========================================================================
+    // 12. MEDICALLY ACCURATE ANATOMICAL FETAL VISUALS & OPEN-LICENSE CREDITS AUDIT
+    // =========================================================================
+    test('All 10 stages have valid asset paths and proper developmental boundaries', () {
+      for (int stage = 1; stage <= 10; stage++) {
+        final stageData = FetalStageVisualData.allStages.firstWhere((s) => s.stageNumber == stage);
+        expect(stageData.defaultAssetPath, 'assets/images/fetal/stage_$stage.png');
+        expect(stageData.milestonesBangla.isNotEmpty, isTrue);
+        expect(stageData.descriptionBangla.isNotEmpty, isTrue);
+      }
+    });
+
+    test('Late pregnancy stages (Weeks 33-40) map to cephalic presentation and full-term maturity', () {
+      // Week 35 -> Stage 9 (Cephalic Positioning & Lung Maturity)
+      final week35Stage = FetalStageVisualData.forWeek(35);
+      expect(week35Stage.stageNumber, 9);
+      expect(week35Stage.stageTitleEnglish, 'Cephalic Positioning & Lung Maturity');
+
+      // Week 40 -> Stage 10 (Full Term Baby - Ready for Birth)
+      final week40Stage = FetalStageVisualData.forWeek(40);
+      expect(week40Stage.stageNumber, 10);
+      expect(week40Stage.stageTitleEnglish, 'Full Term Baby - Ready for Birth');
+    });
+
+    testWidgets('Profile screen displays Medical Illustration Credits & Licensing dialog',
+        (WidgetTester tester) async {
+      await AppState.instance.setLanguage('বাংলা');
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const ProfileScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Scroll to settings section
+      final creditsItem = find.text('মেডিকেল ইলাস্ট্রেশন ও লাইসেন্স');
+      expect(creditsItem, findsOneWidget);
+
+      await tester.ensureVisible(creditsItem);
+      await tester.tap(creditsItem);
+      await tester.pumpAndSettle();
+
+      // Verify dialog content contains CC attributions
+      expect(find.text('Blausen Medical Communications'), findsOneWidget);
+      expect(find.text('OpenStax Anatomy & Physiology 2e'), findsOneWidget);
+      expect(find.textContaining('CC BY 3.0'), findsOneWidget);
+      expect(find.textContaining('CC BY 4.0'), findsOneWidget);
+
+      // Close dialog
+      await tester.tap(find.text('ঠিক আছে'));
+      await tester.pumpAndSettle();
+      expect(find.text('Blausen Medical Communications'), findsNothing);
+    });
+  });
+
+  group('15. Text-First Baby Development Card Verification (No Avatars / Silhouettes)', () {
+    testWidgets('Baby Development Card displays text-first information without avatars',
+        (WidgetTester tester) async {
+      await AppState.instance.setLanguage('বাংলা');
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const Scaffold(
+            body: SingleChildScrollView(
+              child: FetalDevelopmentVisual(weekNumber: 22),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Verify Fruit / Object comparison
+      expect(find.textContaining('পেঁপে'), findsOneWidget);
+      expect(find.text('শিশুর আকারের তুলনা'), findsOneWidget);
+
+      // Verify approximate length and weight with "আনুমানিক"
+      expect(find.text('দৈর্ঘ্য (আনুমানিক)'), findsOneWidget);
+      expect(find.text('ওজন (আনুমানিক)'), findsOneWidget);
+      expect(find.textContaining('২৭.৮ সেমি'), findsOneWidget);
+      expect(find.textContaining('৪৩০ গ্রাম'), findsOneWidget);
+
+      // Verify developmental milestones
+      expect(find.text('এই সপ্তাহের প্রধান বিকাশ'), findsOneWidget);
+      expect(find.text('এই ধাপে শিশুর সক্ষমতা ও পরিবর্তন'), findsOneWidget);
+
+      // Verify Medical safety disclaimer
+      expect(
+        find.textContaining('চিত্রটি আনুমানিক ভ্রূণের বৃদ্ধির চিত্ররূপ'),
+        findsOneWidget,
+      );
+    });
+  });
+
+  group('16. Verified Daily Care Message & Authentic MomBee Advice Audit', () {
+    testWidgets('DailyMessageCard displays verified MomBee care guidance without doctor quotes',
+        (WidgetTester tester) async {
+      await AppState.instance.setLanguage('বাংলা');
+      await AppState.instance.setJourney(JourneyType.pregnant);
+
+      final message = DailyMessageService.getDailyMessageForCurrentProfile();
+
+      expect(message.title.isNotEmpty, isTrue);
+      expect(message.message.isNotEmpty, isTrue);
+      expect(message.careTip.isNotEmpty, isTrue);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const Scaffold(
+            body: SingleChildScrollView(
+              child: DailyMessageCard(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(message.title), findsOneWidget);
+      expect(find.textContaining('আজকের বার্তা'), findsOneWidget);
+    });
+
+    test('DailyMessageService returns context-aware tips across journeys', () async {
+      await AppState.instance.setJourney(JourneyType.pregnant);
+      final pregMsg = DailyMessageService.getDailyMessageForCurrentProfile();
+      expect(pregMsg.title.isNotEmpty, isTrue);
+      expect(pregMsg.message.isNotEmpty, isTrue);
+
+      await AppState.instance.setJourney(JourneyType.baby);
+      final babyMsg = DailyMessageService.getDailyMessageForCurrentProfile();
+      expect(babyMsg.title.isNotEmpty, isTrue);
+      expect(babyMsg.message.isNotEmpty, isTrue);
+
+      await AppState.instance.setJourney(JourneyType.planning);
+      final planMsg = DailyMessageService.getDailyMessageForCurrentProfile();
+      expect(planMsg.title.isNotEmpty, isTrue);
+      expect(planMsg.message.isNotEmpty, isTrue);
+    });
+  });
+
+  group('17. Animated Water Tracker, Metaphor Disclaimer & Date Rollover Audit', () {
+    testWidgets('WaterTrackerModal displays dual mL/L readout, metaphor disclaimer, and controls',
+        (WidgetTester tester) async {
+      await AppState.instance.setLanguage('বাংলা');
+      await AppState.instance.resetTodayWater();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const Scaffold(body: WaterTrackerModal()),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('পানি পানের ট্র্যাকার'), findsOneWidget);
+      expect(find.text('প্রতীকী চিত্র: জলযোজন ট্র্যাকিংয়ের শৈল্পিক রূপক'), findsOneWidget);
+      expect(find.textContaining('মি.লি.'), findsOneWidget);
+      expect(find.textContaining('লিটার'), findsWidgets);
+
+      final addBtn = find.textContaining('+১ গ্লাস');
+      expect(addBtn, findsOneWidget);
+      await tester.ensureVisible(addBtn);
+      await tester.tap(addBtn);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(AppState.instance.waterGlasses, 1);
+      expect(AppState.instance.totalWaterMl, 250);
+      expect(find.textContaining('১ / ১০ গ্লাস'), findsOneWidget);
+
+      final undoBtn = find.textContaining('-১ গ্লাস');
+      expect(undoBtn, findsOneWidget);
+      await tester.ensureVisible(undoBtn);
+      await tester.tap(undoBtn);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(AppState.instance.waterGlasses, 0);
+      expect(AppState.instance.totalWaterMl, 0);
+
+      for (int i = 0; i < 10; i++) {
+        await tester.ensureVisible(addBtn);
+        await tester.tap(addBtn);
+        await tester.pump();
+      }
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(AppState.instance.waterGlasses, 10);
+      expect(AppState.instance.totalWaterMl, 2500);
+      expect(AppState.instance.isWaterTargetReached, isTrue);
+      expect(find.textContaining('অভিনন্দন'), findsOneWidget);
+
+      final resetBtn = find.text('আজকের রিসেট');
+      await tester.ensureVisible(resetBtn);
+      await tester.tap(resetBtn);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('আজকের হিসাব রিসেট করবেন?'), findsOneWidget);
+      await tester.tap(find.text('হ্যাঁ, রিসেট করুন'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(AppState.instance.waterGlasses, 0);
+      expect(AppState.instance.totalWaterMl, 0);
+    });
+
+    test('LocalStorageService rolls over water intake on new calendar date', () async {
+      SharedPreferences.setMockInitialValues({});
+      final yesterday = DateTime.now().subtract(const Duration(days: 1));
+      final yesterdayKey =
+          '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('mombee_water_date', yesterdayKey);
+      await prefs.setInt('mombee_water_glasses', 8);
+
+      final todayCount = await LocalStorageService.getWaterGlasses();
+      expect(todayCount, 0);
+
+      await LocalStorageService.saveWaterGlasses(5);
+      final todaySavedCount = await LocalStorageService.getWaterGlasses();
+      expect(todaySavedCount, 5);
+    });
+  });
+
+  group('18. Personalized Local Notification Preferences Audit', () {
+    testWidgets('Profile screen allows toggling local notification categories',
+        (WidgetTester tester) async {
+      await AppState.instance.setLanguage('বাংলা');
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const ProfileScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final notifPrefItem = find.text(AppLocalization.notifications);
+      expect(notifPrefItem, findsOneWidget);
+
+      await tester.ensureVisible(notifPrefItem);
+      await tester.tap(notifPrefItem);
+      await tester.pumpAndSettle();
+
+      expect(find.text('নোটিফিকেশন ও রিমাইন্ডার সেটিংস'), findsOneWidget);
+      expect(find.text('সকল নোটিফিকেশন চালু রাখুন'), findsOneWidget);
+      expect(find.text('পানি পানের তাগিদ'), findsOneWidget);
+      expect(find.text('দৈনিক যত্ন বার্তা'), findsOneWidget);
+      expect(find.text('ডাক্তারের অ্যাপয়েন্টমেন্ট'), findsOneWidget);
+      expect(find.text('টিকা ও ইমিউনাইজেশন'), findsOneWidget);
+
+      final waterSwitch = find.byType(Switch).at(1);
+      await tester.tap(waterSwitch);
+      await tester.pumpAndSettle();
+      expect(AppState.instance.notifWater, isFalse);
+
+      await tester.tap(find.text('সম্পন্ন'));
+      await tester.pumpAndSettle();
+    });
+  });
+
+  group('19. Multi-Device Responsive UI Audit for Enhanced Components (320dp to 480dp)', () {
+    final componentTestDevices = <String, Size>{
+      'iPhone SE / Small Screen (320 x 568)': const Size(320, 568),
+      'Standard Phone (360 x 640)': const Size(360, 640),
+      'Google Pixel 6a (411.4 x 891.4)': const Size(411.4, 891.4),
+      'Modern Tall Device (412 x 915)': const Size(412, 915),
+      'Large Device (480 x 1066)': const Size(480, 1066),
+    };
+
+    for (final entry in componentTestDevices.entries) {
+      testWidgets('WaterTrackerModal responsive rendering on ${entry.key}',
+          (WidgetTester tester) async {
+        tester.view.physicalSize =
+            Size(entry.value.width * 2, entry.value.height * 2);
+        tester.view.devicePixelRatio = 2.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: const Scaffold(body: WaterTrackerModal()),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('পানি পানের ট্র্যাকার'), findsOneWidget);
+      });
+
+      testWidgets('DailyMessageCard responsive rendering on ${entry.key}',
+          (WidgetTester tester) async {
+        tester.view.physicalSize =
+            Size(entry.value.width * 2, entry.value.height * 2);
+        tester.view.devicePixelRatio = 2.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.lightTheme,
+            home: const Scaffold(
+              body: SingleChildScrollView(
+                child: DailyMessageCard(),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(find.textContaining('আজকের বার্তা'), findsOneWidget);
+      });
+    }
+  });
+
+  group('20. Pregnancy Week + Day Counter, Real-time Sync & Notification Audit Tests', () {
+    test('Pregnancy week + day calculation and Bangla formatting for various dates', () {
+      final now = DateTime.now();
+
+      // 157 days ago -> 22 completed weeks, 3 additional days
+      final p157 = PregnancyData(
+        isSetup: true,
+        lmpDate: now.subtract(const Duration(days: 157)),
+      );
+      expect(p157.calculateTotalDays(now), 157);
+      expect(p157.calculateCompletedWeeks(now), 22);
+      expect(p157.calculateAdditionalDays(now), 3);
+      expect(p157.getProgressAgeText(now), '২২ সপ্তাহ ৩ দিন চলছে');
+      expect(p157.getTotalDaysText(now), 'মোট ১৫৭ দিন');
+
+      // 154 days ago -> 22 completed weeks, 0 additional days
+      final p154 = PregnancyData(
+        isSetup: true,
+        lmpDate: now.subtract(const Duration(days: 154)),
+      );
+      expect(p154.calculateTotalDays(now), 154);
+      expect(p154.calculateCompletedWeeks(now), 22);
+      expect(p154.calculateAdditionalDays(now), 0);
+      expect(p154.getProgressAgeText(now), '২২ সপ্তাহ ০ দিন চলছে');
+      expect(p154.getTotalDaysText(now), 'মোট ১৫৪ দিন');
+
+      // 215 days ago -> 30 completed weeks, 5 additional days
+      final p215 = PregnancyData(
+        isSetup: true,
+        lmpDate: now.subtract(const Duration(days: 215)),
+      );
+      expect(p215.calculateTotalDays(now), 215);
+      expect(p215.calculateCompletedWeeks(now), 30);
+      expect(p215.calculateAdditionalDays(now), 5);
+      expect(p215.getProgressAgeText(now), '৩০ সপ্তাহ ৫ দিন চলছে');
+      expect(p215.getTotalDaysText(now), 'মোট ২১৫ দিন');
+    });
+
+    test('Calendar date advancement updates pregnancy day count automatically', () {
+      final baseDate = DateTime(2026, 1, 1);
+      final p = PregnancyData(
+        isSetup: true,
+        lmpDate: baseDate.subtract(const Duration(days: 157)),
+      );
+
+      // On day 157
+      expect(p.getProgressAgeText(baseDate), '২২ সপ্তাহ ৩ দিন চলছে');
+      expect(p.getTotalDaysText(baseDate), 'মোট ১৫৭ দিন');
+
+      // Advancing calendar by 1 day -> day 158 (22w 4d)
+      final tomorrow = baseDate.add(const Duration(days: 1));
+      expect(p.calculateTotalDays(tomorrow), 158);
+      expect(p.getProgressAgeText(tomorrow), '২২ সপ্তাহ ৪ দিন চলছে');
+      expect(p.getTotalDaysText(tomorrow), 'মোট ১৫৮ দিন');
+
+      // Advancing calendar by 4 days -> day 161 (23w 0d)
+      final fourDaysLater = baseDate.add(const Duration(days: 4));
+      expect(p.calculateTotalDays(fourDaysLater), 161);
+      expect(p.calculateCompletedWeeks(fourDaysLater), 23);
+      expect(p.calculateAdditionalDays(fourDaysLater), 0);
+      expect(p.getProgressAgeText(fourDaysLater), '২৩ সপ্তাহ ০ দিন চলছে');
+      expect(p.getTotalDaysText(fourDaysLater), 'মোট ১৬১ দিন');
+    });
+
+    testWidgets('Home and Tracker screens display week+day and total days badges',
+        (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await AppState.instance.setJourney(JourneyType.pregnant);
+      final lmp = DateTime.now().subtract(const Duration(days: 157));
+      await AppState.instance.updatePregnancyWithLMP(lmp);
+
+      // 1. Home screen test
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const Scaffold(body: HomePregnantScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('২২ সপ্তাহ ৩ দিন চলছে'), findsOneWidget);
+      expect(find.text('মোট ১৫৭ দিন'), findsOneWidget);
+
+      // 2. Tracker screen test
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const PregnancyTrackerScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('২২ সপ্তাহ ৩ দিন চলছে'), findsOneWidget);
+      expect(find.text('মোট ১৫৭ দিন'), findsOneWidget);
+      // Bento card for elapsed days
+      await tester.scrollUntilVisible(find.text('১৫৭ দিন'), 300);
+      expect(find.text('১৫৭ দিন'), findsOneWidget);
+    });
+
+    testWidgets('Real-time LMP modification synchronizes badges across UI without restart',
+        (WidgetTester tester) async {
+      await AppState.instance.setJourney(JourneyType.pregnant);
+      final lmpInitial = DateTime.now().subtract(const Duration(days: 157));
+      await AppState.instance.updatePregnancyWithLMP(lmpInitial);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const Scaffold(body: HomePregnantScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('২২ সপ্তাহ ৩ দিন চলছে'), findsOneWidget);
+      expect(find.text('মোট ১৫৭ দিন'), findsOneWidget);
+
+      // Change LMP to 215 days ago (30w 5d)
+      final lmpUpdated = DateTime.now().subtract(const Duration(days: 215));
+      await AppState.instance.updatePregnancyWithLMP(lmpUpdated);
+      await tester.pumpAndSettle();
+
+      // UI updates reactively without restart
+      expect(find.text('৩০ সপ্তাহ ৫ দিন চলছে'), findsOneWidget);
+      expect(find.text('মোট ২১৫ দিন'), findsOneWidget);
+    });
+
+    testWidgets('Unconfigured pregnancy state displays setup prompt without fake values',
+        (WidgetTester tester) async {
+      await AppState.instance.setJourney(JourneyType.pregnant);
+      // Reset pregnancy setup to false
+      await AppState.instance.resetAllUserData();
+      await AppState.instance.setJourney(JourneyType.pregnant);
+
+      expect(AppState.instance.isPregnancySetup, isFalse);
+
+      // Home Screen: shows setup banner, no counter badge
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const Scaffold(body: HomePregnantScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('সেটআপ শুরু করুন'), findsWidgets);
+      expect(find.text('২২ সপ্তাহ ৩ দিন চলছে'), findsNothing);
+      expect(find.text('মোট ১৫৭ দিন'), findsNothing);
+
+      // Tracker Screen: shows setup card, no hero calculation badges
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const PregnancyTrackerScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('গর্ভধারণের তথ্য সেটআপ করুন'), findsOneWidget);
+      expect(find.text('২২ সপ্তাহ ৩ দিন চলছে'), findsNothing);
+      expect(find.text('মোট ১৫৭ দিন'), findsNothing);
+    });
+
+    test('Notification preferences and settings persistence across toggles', () async {
+      // Master toggle off
+      await AppState.instance.setNotificationsEnabled(false);
+      expect(AppState.instance.notificationsEnabled, isFalse);
+
+      // Master toggle on
+      await AppState.instance.setNotificationsEnabled(true);
+      expect(AppState.instance.notificationsEnabled, isTrue);
+
+      // Category toggles
+      await AppState.instance.setNotifWater(false);
+      expect(AppState.instance.notifWater, isFalse);
+      await AppState.instance.setNotifWater(true);
+      expect(AppState.instance.notifWater, isTrue);
+
+      await AppState.instance.setNotifDailyCare(false);
+      expect(AppState.instance.notifDailyCare, isFalse);
+      await AppState.instance.setNotifDailyCare(true);
+      expect(AppState.instance.notifDailyCare, isTrue);
+
+      await AppState.instance.setNotifVaccines(false);
+      expect(AppState.instance.notifVaccines, isFalse);
+      await AppState.instance.setNotifVaccines(true);
+      expect(AppState.instance.notifVaccines, isTrue);
+
+      await AppState.instance.setNotifAppointments(false);
+      expect(AppState.instance.notifAppointments, isFalse);
+      await AppState.instance.setNotifAppointments(true);
+      expect(AppState.instance.notifAppointments, isTrue);
+    });
+
+    test('Notification service scheduling and cancellation methods execute safely', () async {
+      final notifService = NotificationService.instance;
+      await notifService.initialize();
+
+      // Test scheduling routines
+      await notifService.scheduleDailyCareReminder();
+      await notifService.scheduleWaterReminders();
+      await notifService.cancelWaterReminders();
+
+      // Test appointment reminder scheduling and cancellation
+      final futureDate = DateTime.now().add(const Duration(days: 3));
+      final testApp = Appointment(
+        id: 'test_app_1',
+        doctorName: 'ডাঃ আয়েশা',
+        location: 'ঢাকা মেডিকেল কলেজ হাসপাতাল',
+        dateTime: futureDate,
+      );
+      await notifService.scheduleAppointmentReminder(testApp);
+      await notifService.cancelAppointmentReminder('test_app_1');
+
+      // Test vaccine reminder scheduling and cancellation
+      final testVac = VaccineItem(
+        id: 'test_vac_1',
+        name: 'টিটি (TT) ১ম ডোজ',
+        targetAudience: 'গর্ভকালীন',
+        schedule: 'গর্ভাবস্থার ২০ সপ্তাহ',
+        description: 'টিটেনাস প্রতিরোধে সহায়ক',
+      );
+      await notifService.scheduleVaccineReminder(testVac);
+      await notifService.cancelVaccineReminder('test_vac_1');
+
+      // Test cancel all
+      await notifService.cancelAll();
+
+      expect(notifService, isNotNull);
+    });
+  });
 }
+

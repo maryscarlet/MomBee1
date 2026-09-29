@@ -8,6 +8,8 @@ import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/journey/journey_selection_screen.dart';
 import 'screens/main_navigation_shell.dart';
 
+import 'services/notification_service.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
@@ -19,6 +21,8 @@ void main() async {
     ),
   );
   await AppState.instance.initialize();
+  await NotificationService.instance.initialize();
+  await NotificationService.instance.syncAllReminders();
   runApp(const MomBeeApp());
 }
 

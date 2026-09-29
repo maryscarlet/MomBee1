@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import '../models/journey_type.dart';
 import '../models/pregnancy_data.dart';
+import '../models/fetal_stage_visual_data.dart';
 import '../models/baby_data.dart';
 import '../models/period_data.dart';
 import '../models/appointment.dart';
 import '../models/vaccine_item.dart';
 import '../services/local_storage_service.dart';
+import '../services/notification_service.dart';
 
 class AppState extends ChangeNotifier {
   static final AppState instance = AppState._internal();
@@ -27,10 +29,16 @@ class AppState extends ChangeNotifier {
   bool get isPregnancySetup => _pregnancyData.isSetup;
   int get currentPregnancyWeek => _pregnancyData.calculateCurrentWeek();
   int get currentPregnancyDay => _pregnancyData.calculateCurrentDay();
+  int get totalPregnancyDays => _pregnancyData.calculateTotalDays();
+  int get completedPregnancyWeeks => _pregnancyData.calculateCompletedWeeks();
+  int get additionalPregnancyDays => _pregnancyData.calculateAdditionalDays();
+  String get pregnancyProgressAgeText => _pregnancyData.getProgressAgeText();
+  String get pregnancyTotalDaysText => _pregnancyData.getTotalDaysText();
   int get currentTrimester => _pregnancyData.calculateTrimester();
   double get pregnancyProgress => _pregnancyData.calculateProgress();
   DateTime get estimatedDueDate => _pregnancyData.estimatedDueDate;
   int get remainingDays => _pregnancyData.calculateRemainingDays();
+  FetalStageVisualData get currentFetalStage => _pregnancyData.fetalStage;
 
   // ---------------- BABY STATE ----------------
   BabyData _babyData = BabyData(
@@ -51,9 +59,33 @@ class AppState extends ChangeNotifier {
 
   // ---------------- WATER STATE ----------------
   int _waterGlasses = 0;
-  final int dailyWaterGoal = 10;
+  int _glassSizeMl = 250;
+  int _dailyWaterTargetMl = 2500;
+
   int get waterGlasses => _waterGlasses;
-  double get waterProgress => (_waterGlasses / dailyWaterGoal).clamp(0.0, 1.0);
+  int get glassSizeMl => _glassSizeMl;
+  int get dailyWaterTargetMl => _dailyWaterTargetMl;
+  int get totalWaterMl => _waterGlasses * _glassSizeMl;
+  double get totalWaterLitres => totalWaterMl / 1000.0;
+  double get waterTargetLitres => _dailyWaterTargetMl / 1000.0;
+  int get dailyWaterGoal => (_dailyWaterTargetMl / _glassSizeMl).ceil();
+  double get waterProgress => _dailyWaterTargetMl > 0
+      ? (totalWaterMl / _dailyWaterTargetMl).clamp(0.0, 1.0)
+      : 0.0;
+  bool get isWaterTargetReached => totalWaterMl >= _dailyWaterTargetMl;
+
+  // ---------------- NOTIFICATIONS PREFERENCES ----------------
+  bool _notificationsEnabled = true;
+  bool _notifWater = true;
+  bool _notifDailyCare = true;
+  bool _notifAppointments = true;
+  bool _notifVaccines = true;
+
+  bool get notificationsEnabled => _notificationsEnabled;
+  bool get notifWater => _notifWater;
+  bool get notifDailyCare => _notifDailyCare;
+  bool get notifAppointments => _notifAppointments;
+  bool get notifVaccines => _notifVaccines;
 
   // ---------------- APPOINTMENTS ----------------
   List<Appointment> _appointments = [];
@@ -106,6 +138,13 @@ class AppState extends ChangeNotifier {
 
     _periodData = await LocalStorageService.getPeriodData();
     _waterGlasses = await LocalStorageService.getWaterGlasses();
+    _glassSizeMl = await LocalStorageService.getWaterGlassSizeMl();
+    _dailyWaterTargetMl = await LocalStorageService.getWaterDailyTargetMl();
+    _notificationsEnabled = await LocalStorageService.getNotificationsEnabled();
+    _notifWater = await LocalStorageService.getWaterNotifEnabled();
+    _notifDailyCare = await LocalStorageService.getDailyCareNotifEnabled();
+    _notifAppointments = await LocalStorageService.getAppointmentsNotifEnabled();
+    _notifVaccines = await LocalStorageService.getVaccinesNotifEnabled();
     _appointments = await LocalStorageService.getAppointments();
     _vaccines = await LocalStorageService.getVaccines();
     _language = await LocalStorageService.getLanguage();
@@ -265,7 +304,7 @@ class AppState extends ChangeNotifier {
 
   // ---------------- WATER ACTIONS ----------------
   Future<void> addWaterGlass() async {
-    if (_waterGlasses < 20) {
+    if (_waterGlasses < 30) {
       _waterGlasses++;
       await LocalStorageService.saveWaterGlasses(_waterGlasses);
       notifyListeners();
@@ -280,10 +319,64 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  Future<void> resetTodayWater() async {
+    _waterGlasses = 0;
+    await LocalStorageService.saveWaterGlasses(0);
+    notifyListeners();
+  }
+
+  Future<void> setWaterConfig({
+    required int glassSizeMl,
+    required int dailyTargetMl,
+  }) async {
+    _glassSizeMl = glassSizeMl;
+    _dailyWaterTargetMl = dailyTargetMl;
+    await LocalStorageService.saveWaterGlassSizeMl(glassSizeMl);
+    await LocalStorageService.saveWaterDailyTargetMl(dailyTargetMl);
+    notifyListeners();
+  }
+
+  // ---------------- NOTIFICATION PREFERENCE ACTIONS ----------------
+  Future<void> setNotificationsEnabled(bool enabled) async {
+    _notificationsEnabled = enabled;
+    await LocalStorageService.saveNotificationsEnabled(enabled);
+    await NotificationService.instance.syncAllReminders();
+    notifyListeners();
+  }
+
+  Future<void> setNotifWater(bool enabled) async {
+    _notifWater = enabled;
+    await LocalStorageService.saveWaterNotifEnabled(enabled);
+    await NotificationService.instance.syncAllReminders();
+    notifyListeners();
+  }
+
+  Future<void> setNotifDailyCare(bool enabled) async {
+    _notifDailyCare = enabled;
+    await LocalStorageService.saveDailyCareNotifEnabled(enabled);
+    await NotificationService.instance.syncAllReminders();
+    notifyListeners();
+  }
+
+  Future<void> setNotifAppointments(bool enabled) async {
+    _notifAppointments = enabled;
+    await LocalStorageService.saveAppointmentsNotifEnabled(enabled);
+    await NotificationService.instance.syncAllReminders();
+    notifyListeners();
+  }
+
+  Future<void> setNotifVaccines(bool enabled) async {
+    _notifVaccines = enabled;
+    await LocalStorageService.saveVaccinesNotifEnabled(enabled);
+    await NotificationService.instance.syncAllReminders();
+    notifyListeners();
+  }
+
   // ---------------- APPOINTMENT ACTIONS ----------------
   Future<void> addAppointment(Appointment app) async {
     _appointments.add(app);
     await LocalStorageService.saveAppointments(_appointments);
+    await NotificationService.instance.scheduleAppointmentReminder(app);
     notifyListeners();
   }
 
@@ -292,6 +385,7 @@ class AppState extends ChangeNotifier {
     if (index >= 0) {
       _appointments[index] = updated;
       await LocalStorageService.saveAppointments(_appointments);
+      await NotificationService.instance.scheduleAppointmentReminder(updated);
       notifyListeners();
     }
   }
@@ -299,6 +393,7 @@ class AppState extends ChangeNotifier {
   Future<void> deleteAppointment(String id) async {
     _appointments.removeWhere((a) => a.id == id);
     await LocalStorageService.saveAppointments(_appointments);
+    await NotificationService.instance.cancelAppointmentReminder(id);
     notifyListeners();
   }
 
@@ -313,6 +408,11 @@ class AppState extends ChangeNotifier {
       );
       _vaccines[index] = updated;
       await LocalStorageService.saveVaccines(_vaccines);
+      if (updated.isCompleted) {
+        await NotificationService.instance.cancelVaccineReminder(id);
+      } else {
+        await NotificationService.instance.scheduleVaccineReminder(updated);
+      }
       notifyListeners();
     }
   }
@@ -348,6 +448,13 @@ class AppState extends ChangeNotifier {
       isSetup: false,
     );
     _waterGlasses = 0;
+    _glassSizeMl = 250;
+    _dailyWaterTargetMl = 2500;
+    _notificationsEnabled = true;
+    _notifWater = true;
+    _notifDailyCare = true;
+    _notifAppointments = true;
+    _notifVaccines = true;
     _appointments = [];
     _vaccines = await LocalStorageService.getVaccines();
     _dailyMessageDismissedDate = null;

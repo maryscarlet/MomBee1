@@ -4,6 +4,7 @@ import '../../models/journey_type.dart';
 import '../../models/pregnancy_data.dart';
 import '../../state/app_state.dart';
 import '../../services/app_localization.dart';
+import '../../services/notification_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -13,7 +14,278 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  bool _notificationsEnabled = true;
+  void _showNotificationPreferencesModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ListenableBuilder(
+        listenable: AppState.instance,
+        builder: (context, _) {
+          final state = AppState.instance;
+          return Material(
+            color: AppColors.surfaceContainerLowest,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+            clipBehavior: Clip.antiAlias,
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceDim,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        const Icon(Icons.notifications_active_rounded,
+                            color: AppColors.primary, size: 22),
+                        const SizedBox(width: 8),
+                        Text(
+                          state.isEnglish
+                              ? 'Notification Settings'
+                              : 'নোটিফিকেশন ও রিমাইন্ডার সেটিংস',
+                          style: const TextStyle(
+                            fontFamily: 'Noto Sans Bengali',
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      state.isEnglish
+                          ? 'Manage your personalized reminders for hydration, daily health care, and appointments.'
+                          : 'পানি পান, দৈনিক যত্ন বার্তা এবং ডাক্তারের ভিজিটের রিমাইন্ডার কাস্টমাইজ করুন।',
+                      style: const TextStyle(
+                        fontFamily: 'Noto Sans Bengali',
+                        fontSize: 12,
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                    const Divider(height: 24),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      activeTrackColor: AppColors.primary,
+                      title: Text(
+                        state.isEnglish
+                            ? 'Enable All Notifications'
+                            : 'সকল নোটিফিকেশন চালু রাখুন',
+                        style: const TextStyle(
+                          fontFamily: 'Noto Sans Bengali',
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
+                      ),
+                      value: state.notificationsEnabled,
+                      onChanged: (val) async {
+                        if (val) {
+                          await NotificationService.instance.requestPermissions();
+                        }
+                        await state.setNotificationsEnabled(val);
+                        await NotificationService.instance.syncAllReminders();
+                      },
+                    ),
+                    if (state.notificationsEnabled) ...[
+                      const SizedBox(height: 8),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        activeTrackColor: const Color(0xFF0288D1),
+                        secondary: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0288D1).withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.water_drop_rounded,
+                              color: Color(0xFF0288D1), size: 18),
+                        ),
+                        title: Text(
+                          state.isEnglish
+                              ? 'Water Hydration Reminders'
+                              : 'পানি পানের তাগিদ',
+                          style: const TextStyle(
+                            fontFamily: 'Noto Sans Bengali',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          state.isEnglish
+                              ? 'Gentle daytime reminders to drink water'
+                              : 'দিনের নির্দিষ্ট বিরতিতে পানি পানের রিমাইন্ডার',
+                          style: const TextStyle(
+                            fontFamily: 'Noto Sans Bengali',
+                            fontSize: 11.5,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                        value: state.notifWater,
+                        onChanged: (val) async {
+                          await state.setNotifWater(val);
+                          await NotificationService.instance.syncAllReminders();
+                        },
+                      ),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        activeTrackColor: AppColors.primary,
+                        secondary: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.lightbulb_rounded,
+                              color: AppColors.primary, size: 18),
+                        ),
+                        title: Text(
+                          state.isEnglish
+                              ? 'Daily Care & Health Advice'
+                              : 'দৈনিক যত্ন বার্তা',
+                          style: const TextStyle(
+                            fontFamily: 'Noto Sans Bengali',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          state.isEnglish
+                              ? 'Morning care and nutrition guidance'
+                              : 'সকাল ৯টায় পুষ্টি ও স্বাস্থ্য নির্দেশিকা',
+                          style: const TextStyle(
+                            fontFamily: 'Noto Sans Bengali',
+                            fontSize: 11.5,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                        value: state.notifDailyCare,
+                        onChanged: (val) async {
+                          await state.setNotifDailyCare(val);
+                          await NotificationService.instance.syncAllReminders();
+                        },
+                      ),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        activeTrackColor: const Color(0xFF2E7D32),
+                        secondary: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2E7D32).withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.event_available_rounded,
+                              color: Color(0xFF2E7D32), size: 18),
+                        ),
+                        title: Text(
+                          state.isEnglish
+                              ? 'Doctor Appointments'
+                              : 'ডাক্তারের অ্যাপয়েন্টমেন্ট',
+                          style: const TextStyle(
+                            fontFamily: 'Noto Sans Bengali',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          state.isEnglish
+                              ? 'Alert 24 hours prior to visit'
+                              : 'অ্যাপয়েন্টমেন্টের ২৪ ঘণ্টা পূর্বে সতর্কবার্তা',
+                          style: const TextStyle(
+                            fontFamily: 'Noto Sans Bengali',
+                            fontSize: 11.5,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                        value: state.notifAppointments,
+                        onChanged: (val) async {
+                          await state.setNotifAppointments(val);
+                          await NotificationService.instance.syncAllReminders();
+                        },
+                      ),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        activeTrackColor: const Color(0xFFE65100),
+                        secondary: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE65100).withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.vaccines_rounded,
+                              color: Color(0xFFE65100), size: 18),
+                        ),
+                        title: Text(
+                          state.isEnglish
+                              ? 'Vaccines & Immunization'
+                              : 'টিকা ও ইমিউনাইজেশন',
+                          style: const TextStyle(
+                            fontFamily: 'Noto Sans Bengali',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          state.isEnglish
+                              ? 'Important vaccine alerts and schedules'
+                              : 'প্রয়োজনীয় টিকার সময়সূচি ও সতর্কতা',
+                          style: const TextStyle(
+                            fontFamily: 'Noto Sans Bengali',
+                            fontSize: 11.5,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                        value: state.notifVaccines,
+                        onChanged: (val) async {
+                          await state.setNotifVaccines(val);
+                          await NotificationService.instance.syncAllReminders();
+                        },
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                          ),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          state.isEnglish ? 'Done' : 'সম্পন্ন',
+                          style: const TextStyle(
+                            fontFamily: 'Noto Sans Bengali',
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+      ),
+    );
+  }
 
   void _showChangeJourneyDialog() {
     showModalBottomSheet(
@@ -599,31 +871,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: Colors.transparent,
         builder: (context) => StatefulBuilder(
           builder: (context, setModalState) {
-            final diffDays = DateTime.now().difference(selectedDate).inDays;
-            final calcWeek = diffDays >= 0
-                ? ((diffDays / 7).floor() + 1).clamp(1, 40)
-                : 1;
-            final calcEdd = selectedDate.add(const Duration(days: 280));
+            final tempPregnancy =
+                PregnancyData(lmpDate: selectedDate, isSetup: true);
+            final calcWeek = tempPregnancy.calculateCurrentWeek();
+            final calcEdd = tempPregnancy.estimatedDueDate;
 
             return Container(
               padding: EdgeInsets.only(
-                top: 24,
-                left: 20,
-                right: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-              ),
-              decoration: const BoxDecoration(
-                color: AppColors.surfaceContainerLowest,
-                borderRadius:
-                    BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
-              ),
-              child: SafeArea(
-                top: false,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                  top: 24,
+                  left: 20,
+                  right: 20,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                ),
+                decoration: const BoxDecoration(
+                  color: AppColors.surfaceContainerLowest,
+                  borderRadius:
+                      BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                   Center(
                     child: Container(
                       width: 40,
@@ -1032,6 +1303,189 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: const Text('ঠিক আছে',
                 style: TextStyle(
                     fontFamily: 'Noto Sans Bengali', color: AppColors.primary)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showMedicalCreditsDialog() {
+    final isEn = AppState.instance.isEnglish;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.verified_rounded,
+                color: AppColors.primary,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                isEn
+                    ? 'Medical Visual Credits'
+                    : 'মেডিকেল ইলাস্ট্রেশন ও লাইসেন্স',
+                style: const TextStyle(
+                  fontFamily: 'Noto Sans Bengali',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.onSurface,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isEn
+                    ? 'MomBee uses scientifically validated and open-license anatomical visual references to educate and guide mothers across pregnancy stages:'
+                    : 'MomBee-তে গর্ভাবস্থার প্রতিটি ধাপের জন্য বৈজ্ঞানিক ও শারীরবৃত্তীয়ভাবে নির্ভুল উন্মুক্ত লাইসেন্সপ্রাপ্ত চিত্রসূত্র ব্যবহার করা হয়েছে:',
+                style: const TextStyle(
+                  fontFamily: 'Noto Sans Bengali',
+                  fontSize: 12.5,
+                  height: 1.4,
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 14),
+              _buildCreditCard(
+                title: 'Blausen Medical Communications',
+                creator: 'BruceBlaus (Bruce Blausen)',
+                license: 'Creative Commons Attribution 3.0 (CC BY 3.0)',
+                purpose: isEn
+                    ? 'Sagittal cross-sections of the pregnant uterus, fetal development, and full-term cephalic presentation.'
+                    : 'গর্ভাবস্থার জরায়ু, ভ্রূণের ক্রমান্বয়িক বৃদ্ধি ও পূর্ণ মেয়াদের প্রসবকালীন অবস্থানের শারীরবৃত্তীয় চিত্র।',
+              ),
+              const SizedBox(height: 10),
+              _buildCreditCard(
+                title: 'OpenStax Anatomy & Physiology 2e',
+                creator: 'Rice University / OpenStax',
+                license: 'Creative Commons Attribution 4.0 (CC BY 4.0)',
+                purpose: isEn
+                    ? 'Embryonic milestone progression, fundal height milestones, and maternal organ displacement.'
+                    : 'ভ্রূণের অঙ্গ গঠন, জরায়ুর উচ্চতা বৃদ্ধি ও মাতৃদেহের অভ্যন্তরীণ শারীরিক পরিবর্তনের শিক্ষামূলক রেফারেন্স।',
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFBEB),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFFFDE68A),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.medical_services_outlined,
+                      size: 16,
+                      color: Color(0xFFD97706),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        isEn
+                            ? 'Disclaimer: Illustrations are for general health educational purposes only and are not clinical diagnostic scans. Consult a certified OB/GYN for all personal medical advice.'
+                            : 'সতর্কবার্তা: চিত্রাবলি সাধারণ স্বাস্থ্য শিক্ষামূলক উদ্দেশ্যে প্রস্তুত এবং এটি সরাসরি আল্ট্রাসনোগ্রাফি বা ডায়াগনস্টিক স্ক্যানের বিকল্প নয়। যেকোনো স্বাস্থ্যগত প্রয়োজনে রেজিস্টার্ড গাইনি বিশেষজ্ঞের পরামর্শ নিন।',
+                        style: const TextStyle(
+                          fontFamily: 'Noto Sans Bengali',
+                          fontSize: 11,
+                          height: 1.35,
+                          color: Color(0xFF92400E),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              isEn ? 'Close' : 'ঠিক আছে',
+              style: const TextStyle(
+                fontFamily: 'Noto Sans Bengali',
+                fontWeight: FontWeight.w700,
+                color: AppColors.primary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCreditCard({
+    required String title,
+    required String creator,
+    required String license,
+    required String purpose,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.borderCard),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppColors.onSurface,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Author: $creator',
+            style: const TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: AppColors.primary,
+            ),
+          ),
+          Text(
+            'License: $license',
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppColors.outline,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            purpose,
+            style: const TextStyle(
+              fontFamily: 'Noto Sans Bengali',
+              fontSize: 11,
+              height: 1.3,
+              color: AppColors.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -1459,13 +1913,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _SettingsItem(
                       icon: Icons.notifications_none_rounded,
                       title: AppLocalization.notifications,
-                      trailingWidget: Switch.adaptive(
-                        value: _notificationsEnabled,
-                        activeTrackColor: AppColors.primary,
-                        onChanged: (val) {
-                          setState(() => _notificationsEnabled = val);
-                        },
-                      ),
+                      subtitle: AppState.instance.notificationsEnabled
+                          ? (AppState.instance.isEnglish ? 'Active' : 'সক্রিয়')
+                          : (AppState.instance.isEnglish ? 'Off' : 'বন্ধ'),
+                      onTap: _showNotificationPreferencesModal,
                     ),
                     _SettingsItem(
                       icon: Icons.language_rounded,
@@ -1498,6 +1949,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       icon: Icons.info_outline_rounded,
                       title: AppLocalization.aboutMomBee,
                       onTap: _showAboutMomBeeDialog,
+                    ),
+                    _SettingsItem(
+                      icon: Icons.verified_rounded,
+                      title: AppState.instance.isEnglish
+                          ? 'Medical Visual Credits'
+                          : 'মেডিকেল ইলাস্ট্রেশন ও লাইসেন্স',
+                      subtitle: AppState.instance.isEnglish
+                          ? 'Open-license anatomical visual attributions'
+                          : 'উন্মুক্ত লাইসেন্স ও শারীরবৃত্তীয় তথ্যের উৎস',
+                      onTap: _showMedicalCreditsDialog,
                     ),
                   ],
                 ),
@@ -1656,12 +2117,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ],
                             ),
                           ),
-                          item.trailingWidget ??
-                              const Icon(
-                                Icons.chevron_right_rounded,
-                                color: AppColors.outline,
-                                size: 20,
-                              ),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            color: AppColors.outline,
+                            size: 20,
+                          ),
                         ],
                       ),
                     ),
@@ -1689,7 +2149,6 @@ class _SettingsItem {
   final String? subtitle;
   final Color? subtitleColor;
   final bool hasBadge;
-  final Widget? trailingWidget;
   final VoidCallback? onTap;
 
   const _SettingsItem({
@@ -1698,7 +2157,6 @@ class _SettingsItem {
     this.subtitle,
     this.subtitleColor,
     this.hasBadge = false,
-    this.trailingWidget,
     this.onTap,
   });
 }

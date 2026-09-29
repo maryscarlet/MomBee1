@@ -125,55 +125,136 @@ class _DailyMessageCardState extends State<DailyMessageCard>
                     color: AppColors.onSurfaceVariant,
                   ),
                 ),
-                const SizedBox(height: 18),
+                if (msg.hasDoctorQuote) ...[
+                  const SizedBox(height: 18),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryFixed.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.format_quote_rounded,
+                            color: AppColors.primary, size: 24),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                msg.doctorQuote,
+                                style: const TextStyle(
+                                  fontFamily: 'Noto Sans Bengali',
+                                  fontSize: 13,
+                                  fontStyle: FontStyle.italic,
+                                  height: 1.5,
+                                  color: AppColors.onSurface,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  const Icon(Icons.verified_user_rounded,
+                                      size: 14, color: AppColors.primary),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      '${msg.doctorName} • ${msg.doctorRole}',
+                                      style: const TextStyle(
+                                        fontFamily: 'Noto Sans Bengali',
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else if (msg.careTip.isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.15)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.tips_and_updates_rounded,
+                          color: AppColors.primary,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'দৈনিক যত্ন টিপস',
+                                style: TextStyle(
+                                  fontFamily: 'Noto Sans Bengali',
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                msg.careTip,
+                                style: const TextStyle(
+                                  fontFamily: 'Noto Sans Bengali',
+                                  fontSize: 13,
+                                  height: 1.5,
+                                  color: AppColors.onSurface,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 14),
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryFixed.withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                    border:
-                        Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                    color: AppColors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.format_quote_rounded,
-                          color: AppColors.primary, size: 24),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              msg.doctorQuote,
-                              style: const TextStyle(
-                                fontFamily: 'Noto Sans Bengali',
-                                fontSize: 13,
-                                fontStyle: FontStyle.italic,
-                                height: 1.5,
-                                color: AppColors.onSurface,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                const Icon(Icons.verified_user_rounded,
-                                    size: 14, color: AppColors.primary),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    '${msg.doctorName} • ${msg.doctorRole}',
-                                    style: const TextStyle(
-                                      fontFamily: 'Noto Sans Bengali',
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                      Icon(
+                        Icons.info_outline_rounded,
+                        size: 14,
+                        color: AppColors.onSurfaceVariant.withValues(alpha: 0.8),
+                      ),
+                      const SizedBox(width: 6),
+                      const Expanded(
+                        child: Text(
+                          'মাম্বির তথ্যসমূহ সাধারণ সচেতনতা ও নির্দেশিকা হিসেবে সংকলিত। জরুরি প্রয়োজনে স্বাস্থ্যকেন্দ্রে যোগাযোগ করুন।',
+                          style: TextStyle(
+                            fontFamily: 'Noto Sans Bengali',
+                            fontSize: 10.5,
+                            height: 1.4,
+                            color: AppColors.onSurfaceVariant,
+                          ),
                         ),
                       ),
                     ],
@@ -195,7 +276,8 @@ class _DailyMessageCardState extends State<DailyMessageCard>
                         borderRadius: BorderRadius.circular(AppRadius.md),
                       ),
                     ),
-                    icon: const Icon(Icons.check_circle_outline_rounded, size: 20),
+                    icon: const Icon(Icons.check_circle_outline_rounded,
+                        size: 20),
                     label: const Text(
                       'পড়েছি, ধন্যবাদ',
                       style: TextStyle(
@@ -237,154 +319,160 @@ class _DailyMessageCardState extends State<DailyMessageCard>
                   curve: Curves.easeOut,
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 18.0),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFFFFF6F7),
-                    AppColors.surfaceContainerLowest,
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-                border:
-                    Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
-                boxShadow: AppShadows.subtleCard,
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
-                  onTap: () => _showDetailModal(context, msg),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.12),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.lightbulb_outline_rounded,
-                                color: AppColors.primary,
-                                size: 18,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'আজকের বার্তা • ${msg.greeting}',
-                              style: const TextStyle(
-                                fontFamily: 'Noto Sans Bengali',
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            const Spacer(),
-                            // Quick Mark as Read Action
-                            InkWell(
-                              borderRadius:
-                                  BorderRadius.circular(AppRadius.full),
-                              onTap: () => _handleMarkAsRead(context),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color:
-                                      AppColors.primary.withValues(alpha: 0.08),
-                                  borderRadius:
-                                      BorderRadius.circular(AppRadius.full),
-                                  border: Border.all(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFFFFF6F7),
+                          AppColors.surfaceContainerLowest,
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.15)),
+                      boxShadow: AppShadows.subtleCard,
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        onTap: () => _showDetailModal(context, msg),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
                                       color: AppColors.primary
-                                          .withValues(alpha: 0.2)),
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.check_rounded,
-                                        size: 13, color: AppColors.primary),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'পড়েছি',
-                                      style: TextStyle(
+                                          .withValues(alpha: 0.12),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.lightbulb_outline_rounded,
+                                      color: AppColors.primary,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      'আজকের বার্তা • ${msg.greeting}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
                                         fontFamily: 'Noto Sans Bengali',
-                                        fontSize: 11,
+                                        fontSize: 13,
                                         fontWeight: FontWeight.w700,
                                         color: AppColors.primary,
                                       ),
                                     ),
-                                  ],
+                                  ),
+                                  const SizedBox(width: 8),
+                                  // Quick Mark as Read Action
+                                  InkWell(
+                                    borderRadius:
+                                        BorderRadius.circular(AppRadius.full),
+                                    onTap: () => _handleMarkAsRead(context),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary
+                                            .withValues(alpha: 0.08),
+                                        borderRadius: BorderRadius.circular(
+                                            AppRadius.full),
+                                        border: Border.all(
+                                            color: AppColors.primary
+                                                .withValues(alpha: 0.2)),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.check_rounded,
+                                              size: 13,
+                                              color: AppColors.primary),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            'পড়েছি',
+                                            style: TextStyle(
+                                              fontFamily: 'Noto Sans Bengali',
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppColors.primary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                msg.title,
+                                style: const TextStyle(
+                                  fontFamily: 'Noto Sans Bengali',
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.onSurface,
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          msg.title,
-                          style: const TextStyle(
-                            fontFamily: 'Noto Sans Bengali',
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          msg.message,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontFamily: 'Noto Sans Bengali',
-                            fontSize: 13,
-                            height: 1.4,
-                            color: AppColors.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            const Icon(Icons.verified_user_outlined,
-                                size: 13, color: AppColors.outline),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                'পরামর্শক: ${msg.doctorName} (${msg.doctorRole})',
-                                maxLines: 1,
+                              const SizedBox(height: 4),
+                              Text(
+                                msg.message,
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   fontFamily: 'Noto Sans Bengali',
-                                  fontSize: 11,
-                                  color: AppColors.outline,
+                                  fontSize: 13,
+                                  height: 1.4,
+                                  color: AppColors.onSurfaceVariant,
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 6),
-                            const Text(
-                              'বিস্তারিত',
-                              style: TextStyle(
-                                fontFamily: 'Noto Sans Bengali',
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primary,
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  const Icon(Icons.spa_rounded,
+                                      size: 14, color: AppColors.primary),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      'গাইডলাইন: ${msg.category}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontFamily: 'Noto Sans Bengali',
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const Text(
+                                    'বিস্তারিত',
+                                    style: TextStyle(
+                                      fontFamily: 'Noto Sans Bengali',
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                  const Icon(Icons.chevron_right_rounded,
+                                      size: 16, color: AppColors.primary),
+                                ],
                               ),
-                            ),
-                            const Icon(Icons.chevron_right_rounded,
-                                size: 16, color: AppColors.primary),
-                          ],
+                            ],
+                          ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
-          ),
         );
       },
     );

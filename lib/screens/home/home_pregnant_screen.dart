@@ -7,6 +7,7 @@ import '../../data/pregnancy_weeks_data.dart';
 import '../../state/app_state.dart';
 import '../../widgets/daily_message_card.dart';
 import '../../widgets/article_widgets.dart';
+import '../../widgets/fetal_development_visual.dart';
 import '../pregnancy/pregnancy_week_guide_screen.dart';
 import '../tracker/period_tracker_screen.dart';
 import '../tracker/pregnancy_tracker_screen.dart';
@@ -249,7 +250,6 @@ class _HomePregnantScreenState extends State<HomePregnantScreen> {
       builder: (context, _) {
         final isSetup = AppState.instance.pregnancyData.isSetup;
         final currentWeek = AppState.instance.currentPregnancyWeek;
-        final currentDay = AppState.instance.currentPregnancyDay;
         final trimester = AppState.instance.currentTrimester;
         final progress = AppState.instance.pregnancyProgress;
 
@@ -367,8 +367,9 @@ class _HomePregnantScreenState extends State<HomePregnantScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: [
@@ -451,8 +452,61 @@ class _HomePregnantScreenState extends State<HomePregnantScreen> {
                                   ],
                                 ),
                               ),
+                              const SizedBox(height: 6),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 4,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary
+                                          .withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: AppColors.primary
+                                            .withValues(alpha: 0.2),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      AppState.instance.pregnancyProgressAgeText,
+                                      style: const TextStyle(
+                                        fontFamily: 'Noto Sans Bengali',
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFECB16)
+                                          .withValues(alpha: 0.18),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: const Color(0xFFE0B000)
+                                            .withValues(alpha: 0.3),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      AppState.instance.pregnancyTotalDaysText,
+                                      style: const TextStyle(
+                                        fontFamily: 'Noto Sans Bengali',
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF745B00),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
                               Text(
-                                '${toBanglaDigits(currentDay)} দিন চলছে • ${weekInfo.babySizeComparison}',
+                                '${weekInfo.babySizeComparison}-এর সমান আকার',
                                 style: const TextStyle(
                                   fontFamily: 'Noto Sans Bengali',
                                   fontSize: 12,
@@ -461,8 +515,10 @@ class _HomePregnantScreenState extends State<HomePregnantScreen> {
                               ),
                             ],
                           ),
+                        ),
+                        const SizedBox(width: 12),
 
-                          // Baby size icon badge
+                        // Baby size icon badge with clean icon and week number
                           GestureDetector(
                             onTap: () => _openWeekGuide(currentWeek),
                             child: Container(
@@ -471,6 +527,10 @@ class _HomePregnantScreenState extends State<HomePregnantScreen> {
                               decoration: BoxDecoration(
                                 color: AppColors.surfaceContainer,
                                 shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppColors.primary.withValues(alpha: 0.2),
+                                  width: 1.5,
+                                ),
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.black.withValues(alpha: 0.04),
@@ -480,17 +540,25 @@ class _HomePregnantScreenState extends State<HomePregnantScreen> {
                                 ],
                               ),
                               child: Center(
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFFFF6D6),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.child_care_rounded,
-                                    color: Color(0xFF745B00),
-                                    size: 28,
-                                  ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.spa_rounded,
+                                      color: AppColors.primary,
+                                      size: 24,
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${toBanglaDigits(currentWeek)} সপ্তাহ',
+                                      style: const TextStyle(
+                                        fontFamily: 'Noto Sans Bengali',
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
@@ -533,13 +601,16 @@ class _HomePregnantScreenState extends State<HomePregnantScreen> {
                                   color: AppColors.onSurfaceVariant,
                                 ),
                               ),
-                              Text(
-                                'সম্ভাব্য প্রসব: ${toBanglaDigits(AppState.instance.estimatedDueDate.day)}/${toBanglaDigits(AppState.instance.estimatedDueDate.month)}/${toBanglaDigits(AppState.instance.estimatedDueDate.year)}',
-                                style: const TextStyle(
-                                  fontFamily: 'Noto Sans Bengali',
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.primary,
+                              Flexible(
+                                child: Text(
+                                  'সম্ভাব্য প্রসব: ${toBanglaDigits(AppState.instance.estimatedDueDate.day)}/${toBanglaDigits(AppState.instance.estimatedDueDate.month)}/${toBanglaDigits(AppState.instance.estimatedDueDate.year)}',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontFamily: 'Noto Sans Bengali',
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primary,
+                                  ),
                                 ),
                               ),
                               const Text(
@@ -583,6 +654,15 @@ class _HomePregnantScreenState extends State<HomePregnantScreen> {
                     ],
                   ),
                 ),
+
+              if (isSetup) ...[
+                const SizedBox(height: 20),
+                // Dynamic Baby Development Visual Card
+                FetalDevelopmentVisual(
+                  weekNumber: currentWeek,
+                  onTap: () => _openWeekGuide(currentWeek),
+                ),
+              ],
               const SizedBox(height: 24),
 
               // ---------------- QUICK ACTIONS 4-ITEM GRID ----------------
