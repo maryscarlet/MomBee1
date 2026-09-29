@@ -292,9 +292,6 @@ class _HomePregnantScreenState extends State<HomePregnantScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Dynamic Daily Message
-              const DailyMessageCard(),
-
               // ---------------- MAIN PREGNANCY PROGRESS CARD ----------------
               if (!isSetup)
                 Container(
@@ -663,6 +660,10 @@ class _HomePregnantScreenState extends State<HomePregnantScreen> {
                   onTap: () => _openWeekGuide(currentWeek),
                 ),
               ],
+              const SizedBox(height: 20),
+
+              // Noticeable Daily Care Message Card
+              const DailyMessageCard(),
               const SizedBox(height: 24),
 
               // ---------------- QUICK ACTIONS 4-ITEM GRID ----------------

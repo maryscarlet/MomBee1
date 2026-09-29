@@ -1,12 +1,15 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import '../models/appointment.dart';
 import '../models/vaccine_item.dart';
 import '../models/journey_type.dart';
+import '../models/notification_item.dart';
 import '../state/app_state.dart';
+import 'local_storage_service.dart';
 
 /// Comprehensive local notification service for MomBee.
 /// Runs 100% locally on device without Firebase or external cloud services.
@@ -19,6 +22,9 @@ class NotificationService {
 
   bool _isInitialized = false;
   bool get isInitialized => _isInitialized;
+
+  static const MethodChannel _settingsChannel =
+      MethodChannel('com.example.mombee_app/settings');
 
   // Channel IDs
   static const String _kWaterChannelId = 'mombee_water_reminders';
@@ -41,12 +47,20 @@ class NotificationService {
   static const String _kVaccinesChannelDesc =
       'মা ও শিশুর প্রয়োজনীয় টিকার সময়সূচি';
 
+  // Dedicated Android monochrome notification small icon
+  static const String _kNotificationIcon = '@drawable/ic_notification';
+  static const String _kFallbackIcon = '@mipmap/ic_launcher';
+
+  // In-app Notification History
+  List<NotificationLogItem> _history = [];
+  List<NotificationLogItem> get history => List.unmodifiable(_history);
+  int get unreadCount => _history.where((i) => !i.isRead).length;
+
   Future<void> initialize() async {
     if (_isInitialized) return;
 
     try {
       tz.initializeTimeZones();
-      // Set default local location safely
       try {
         const String currentTimeZone = 'Asia/Dhaka';
         tz.setLocalLocation(tz.getLocation(currentTimeZone));
@@ -55,7 +69,7 @@ class NotificationService {
       }
 
       const AndroidInitializationSettings androidSettings =
-          AndroidInitializationSettings('@mipmap/ic_launcher');
+          AndroidInitializationSettings(_kNotificationIcon);
 
       const DarwinInitializationSettings iosSettings =
           DarwinInitializationSettings(
@@ -79,10 +93,116 @@ class NotificationService {
       _isInitialized = true;
     } catch (e) {
       debugPrint('NotificationService initialize error: $e');
+      // Fallback with mipmap icon if drawable is not yet compiled on host
+      try {
+        const fallbackSettings = InitializationSettings(
+          android: AndroidInitializationSettings(_kFallbackIcon),
+        );
+        await _notificationsPlugin.initialize(settings: fallbackSettings);
+        _isInitialized = true;
+      } catch (_) {}
+    }
+
+    await loadHistory();
+  }
+
+  // ---------------- NOTIFICATION HISTORY MANAGEMENT ----------------
+  Future<void> loadHistory() async {
+    try {
+      _history = await LocalStorageService.getNotificationHistory();
+      if (_history.isEmpty) {
+        _history = _getSeedHistory();
+        await LocalStorageService.saveNotificationHistory(_history);
+      }
+    } catch (e) {
+      debugPrint('Error loading notification history: $e');
     }
   }
 
-  /// Request runtime notification permissions
+  List<NotificationLogItem> _getSeedHistory() {
+    final now = DateTime.now();
+    return [
+      NotificationLogItem(
+        id: 'welcome_1',
+        title: 'MomBee-তে স্বাগতম 🌸',
+        body:
+            'আপনার ও আপনার সোনামণির সার্বিক সুস্বাস্থ্য ও যত্নে মমবি সর্বদা পাশে আছে।',
+        category: NotificationCategory.general,
+        timestamp: now.subtract(const Duration(minutes: 30)),
+        isRead: false,
+      ),
+      NotificationLogItem(
+        id: 'daily_care_seed',
+        title: 'সুপ্রভাত! আজকের মমবি যত্ন বার্তা 🌸',
+        body: 'সকালের পুষ্টিকর নাস্তা ও পর্যাপ্ত বিশ্রাম নিশ্চিত করুন।',
+        category: NotificationCategory.dailyCare,
+        timestamp: now.subtract(const Duration(hours: 3)),
+        isRead: false,
+      ),
+      NotificationLogItem(
+        id: 'water_seed',
+        title: 'এক গ্লাস পানি পান করুন 💧',
+        body: 'সুস্থ শরীর ও শিশুর সুরক্ষায় শরীর হাইড্রেটেড রাখা অত্যন্ত জরুরি।',
+        category: NotificationCategory.water,
+        timestamp: now.subtract(const Duration(hours: 1)),
+        isRead: true,
+      ),
+    ];
+  }
+
+  Future<void> addHistoryItem(NotificationLogItem item) async {
+    _history.removeWhere((i) => i.id == item.id);
+    _history.insert(0, item);
+    if (_history.length > 50) {
+      _history = _history.sublist(0, 50);
+    }
+    await LocalStorageService.saveNotificationHistory(_history);
+    try {
+      AppState.instance.refreshNotifications();
+    } catch (_) {}
+  }
+
+  Future<void> markAsRead(String id) async {
+    final index = _history.indexWhere((item) => item.id == id);
+    if (index >= 0) {
+      _history[index] = _history[index].copyWith(isRead: true);
+      await LocalStorageService.saveNotificationHistory(_history);
+      try {
+        AppState.instance.refreshNotifications();
+      } catch (_) {}
+    }
+  }
+
+  Future<void> markAllAsRead() async {
+    _history = _history.map((item) => item.copyWith(isRead: true)).toList();
+    await LocalStorageService.saveNotificationHistory(_history);
+    try {
+      AppState.instance.refreshNotifications();
+    } catch (_) {}
+  }
+
+  Future<void> clearHistory() async {
+    _history = [];
+    await LocalStorageService.saveNotificationHistory(_history);
+    try {
+      AppState.instance.refreshNotifications();
+    } catch (_) {}
+  }
+
+  // ---------------- PERMISSION CHECKS & SETTINGS ----------------
+  Future<bool> areNotificationsEnabled() async {
+    if (kIsWeb) return false;
+    try {
+      if (Platform.isAndroid) {
+        final androidImplementation = _notificationsPlugin
+            .resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin>();
+        return await androidImplementation?.areNotificationsEnabled() ?? false;
+      }
+    } catch (_) {}
+    return false;
+  }
+
   Future<bool> requestPermissions() async {
     try {
       if (kIsWeb) return false;
@@ -111,21 +231,65 @@ class NotificationService {
     return false;
   }
 
-  // ---------------- WATER REMINDERS (Every 2-3 hours during daytime) ----------------
-  Future<void> scheduleWaterReminders() async {
+  Future<void> openNotificationSettings() async {
+    if (kIsWeb) return;
+    try {
+      await _settingsChannel.invokeMethod('openNotificationSettings');
+    } catch (e) {
+      debugPrint('Could not open notification settings: $e');
+    }
+  }
+
+  // ---------------- WATER REMINDERS (Configurable Hourly Interval) ----------------
+  List<int> getWaterReminderHours({
+    int? interval,
+    int? startHour,
+    int? endHour,
+  }) {
+    final int step = interval ?? AppState.instance.waterReminderInterval;
+    final int start = startHour ?? AppState.instance.waterReminderStartHour;
+    final int end = endHour ?? AppState.instance.waterReminderEndHour;
+
+    final List<int> hours = [];
+    final validStep = step > 0 ? step : 1;
+    for (int h = start; h <= end; h += validStep) {
+      hours.add(h);
+    }
+    return hours;
+  }
+
+  Future<void> scheduleWaterReminders({
+    bool suppressTodayRemaining = false,
+  }) async {
     if (!_isInitialized || !AppState.instance.notificationsEnabled) return;
     if (!AppState.instance.notifWater) return;
 
     await cancelWaterReminders();
 
-    // Schedule 4 gentle daytime reminders: 10:00, 13:00, 16:00, 19:00
-    final hours = [10, 13, 16, 19];
+    final hours = getWaterReminderHours();
+    final now = DateTime.now();
+
     for (int i = 0; i < hours.length; i++) {
       final hour = hours[i];
-      final id = 1001 + i;
+      final id = 1000 + i;
 
       try {
-        final scheduledTime = _nextInstanceOfTime(hour, 0);
+        tz.TZDateTime scheduledTime;
+        if (suppressTodayRemaining && hour >= now.hour) {
+          // If water target is already reached today, push reminder to start tomorrow
+          final tz.TZDateTime nowTz = tz.TZDateTime.now(tz.local);
+          final tomorrow = nowTz.add(const Duration(days: 1));
+          scheduledTime = tz.TZDateTime(
+            tz.local,
+            tomorrow.year,
+            tomorrow.month,
+            tomorrow.day,
+            hour,
+            0,
+          );
+        } else {
+          scheduledTime = _nextInstanceOfTime(hour, 0);
+        }
 
         const androidDetails = AndroidNotificationDetails(
           _kWaterChannelId,
@@ -133,7 +297,7 @@ class NotificationService {
           channelDescription: _kWaterChannelDesc,
           importance: Importance.defaultImportance,
           priority: Priority.defaultPriority,
-          icon: '@mipmap/ic_launcher',
+          icon: _kNotificationIcon,
         );
         const iosDetails = DarwinNotificationDetails();
         const notificationDetails = NotificationDetails(
@@ -144,7 +308,8 @@ class NotificationService {
         await _notificationsPlugin.zonedSchedule(
           id: id,
           title: 'এক গ্লাস পানি পান করুন 💧',
-          body: 'সুস্থ শরীর ও শিশুর সুরক্ষায় শরীর হাইড্রেটেড রাখা অত্যন্ত জরুরি।',
+          body:
+              'সুস্থ শরীর ও শিশুর সুরক্ষায় শরীর হাইড্রেটেড রাখা অত্যন্ত জরুরি।',
           scheduledDate: scheduledTime,
           notificationDetails: notificationDetails,
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
@@ -156,18 +321,21 @@ class NotificationService {
     }
   }
 
+  Future<void> onWaterTargetReached() async {
+    // When target is reached, cancel remainder of today's reminders and resume tomorrow morning
+    await scheduleWaterReminders(suppressTodayRemaining: true);
+  }
+
   Future<void> cancelWaterReminders() async {
     if (!_isInitialized) return;
-    for (int i = 0; i < 4; i++) {
+    for (int id = 1000; id <= 1030; id++) {
       try {
-        await _notificationsPlugin.cancel(id: 1001 + i);
-      } catch (e) {
-        debugPrint('Error canceling water reminder $i: $e');
-      }
+        await _notificationsPlugin.cancel(id: id);
+      } catch (_) {}
     }
   }
 
-  // ---------------- DAILY CARE REMINDER (9:00 AM) ----------------
+  // ---------------- DAILY CARE REMINDER (Customizable Time) ----------------
   Future<void> scheduleDailyCareReminder() async {
     if (!_isInitialized || !AppState.instance.notificationsEnabled) return;
     if (!AppState.instance.notifDailyCare) return;
@@ -175,7 +343,9 @@ class NotificationService {
     await cancelDailyCareReminder();
 
     try {
-      final scheduledTime = _nextInstanceOfTime(9, 0);
+      final hour = AppState.instance.dailyCareHour;
+      final minute = AppState.instance.dailyCareMinute;
+      final scheduledTime = _nextInstanceOfTime(hour, minute);
 
       const androidDetails = AndroidNotificationDetails(
         _kDailyCareChannelId,
@@ -183,7 +353,7 @@ class NotificationService {
         channelDescription: _kDailyCareChannelDesc,
         importance: Importance.defaultImportance,
         priority: Priority.defaultPriority,
-        icon: '@mipmap/ic_launcher',
+        icon: _kNotificationIcon,
       );
       const iosDetails = DarwinNotificationDetails();
       const notificationDetails = NotificationDetails(
@@ -244,7 +414,7 @@ class NotificationService {
         channelDescription: _kAppointmentsChannelDesc,
         importance: Importance.high,
         priority: Priority.high,
-        icon: '@mipmap/ic_launcher',
+        icon: _kNotificationIcon,
       );
       const iosDetails = DarwinNotificationDetails();
       const notificationDetails = NotificationDetails(
@@ -255,7 +425,8 @@ class NotificationService {
       await _notificationsPlugin.zonedSchedule(
         id: notifId,
         title: 'আগামীকাল ডাক্তারের অ্যাপয়েন্টমেন্ট 🩺',
-        body: '${app.doctorName}-এর সাথে অ্যাপয়েন্টমেন্ট। ফাইল ও রিপোর্ট সঙ্গে রাখুন।',
+        body:
+            '${app.doctorName}-এর সাথে অ্যাপয়েন্টমেন্ট। ফাইল ও রিপোর্ট সঙ্গে রাখুন।',
         scheduledDate: scheduledTz,
         notificationDetails: notificationDetails,
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
@@ -297,7 +468,7 @@ class NotificationService {
         channelDescription: _kVaccinesChannelDesc,
         importance: Importance.high,
         priority: Priority.high,
-        icon: '@mipmap/ic_launcher',
+        icon: _kNotificationIcon,
       );
       const iosDetails = DarwinNotificationDetails();
       const notificationDetails = NotificationDetails(
@@ -375,8 +546,49 @@ class NotificationService {
     }
   }
 
+  /// Instant notification dispatch for testing or in-app triggers
+  Future<void> showInstantNotification({
+    required int id,
+    required String title,
+    required String body,
+    String category = NotificationCategory.general,
+  }) async {
+    if (!_isInitialized) return;
+    try {
+      const androidDetails = AndroidNotificationDetails(
+        'mombee_general',
+        'সাধারণ নোটিফিকেশন',
+        importance: Importance.high,
+        priority: Priority.high,
+        icon: _kNotificationIcon,
+      );
+      const iosDetails = DarwinNotificationDetails();
+      const details =
+          NotificationDetails(android: androidDetails, iOS: iosDetails);
+
+      await _notificationsPlugin.show(
+        id: id,
+        title: title,
+        body: body,
+        notificationDetails: details,
+      );
+
+      await addHistoryItem(NotificationLogItem(
+        id: id.toString(),
+        title: title,
+        body: body,
+        category: category,
+        timestamp: DateTime.now(),
+        isRead: false,
+      ));
+    } catch (e) {
+      debugPrint('Error showing instant notification: $e');
+    }
+  }
+
   /// For testing and auditing scheduled notifications on supported platforms
-  Future<List<PendingNotificationRequest>> getPendingNotificationRequests() async {
+  Future<List<PendingNotificationRequest>>
+      getPendingNotificationRequests() async {
     if (!_isInitialized) return [];
     try {
       return await _notificationsPlugin.pendingNotificationRequests();

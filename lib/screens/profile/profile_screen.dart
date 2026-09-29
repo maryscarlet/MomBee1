@@ -5,6 +5,7 @@ import '../../models/pregnancy_data.dart';
 import '../../state/app_state.dart';
 import '../../services/app_localization.dart';
 import '../../services/notification_service.dart';
+import '../notifications/notification_center_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -53,16 +54,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const Icon(Icons.notifications_active_rounded,
                             color: AppColors.primary, size: 22),
                         const SizedBox(width: 8),
-                        Text(
-                          state.isEnglish
-                              ? 'Notification Settings'
-                              : 'নোটিফিকেশন ও রিমাইন্ডার সেটিংস',
-                          style: const TextStyle(
-                            fontFamily: 'Noto Sans Bengali',
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.onSurface,
+                        Expanded(
+                          child: Text(
+                            state.isEnglish
+                                ? 'Notification Settings'
+                                : 'নোটিফিকেশন ও রিমাইন্ডার সেটিংস',
+                            style: const TextStyle(
+                              fontFamily: 'Noto Sans Bengali',
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.onSurface,
+                            ),
                           ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.history_rounded,
+                              color: AppColors.primary),
+                          tooltip: 'নোটিফিকেশন হিস্ট্রি',
+                          onPressed: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const NotificationCenterScreen(),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -78,6 +96,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     const Divider(height: 24),
+                    FutureBuilder<bool>(
+                      future: NotificationService.instance.areNotificationsEnabled(),
+                      builder: (context, snapshot) {
+                        final isSystemPermitted = snapshot.data ?? true;
+                        if (!isSystemPermitted) {
+                          return Container(
+                            padding: const EdgeInsets.all(12),
+                            margin: const EdgeInsets.only(bottom: 14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF3E0),
+                              borderRadius: BorderRadius.circular(AppRadius.md),
+                              border: Border.all(
+                                  color: const Color(0xFFFFB74D)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.warning_amber_rounded,
+                                    color: Color(0xFFE65100), size: 22),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    state.isEnglish
+                                        ? 'App notifications are disabled in device settings. Open settings to allow.'
+                                        : 'ফোনের সিস্টেমে নোটিফিকেশন বন্ধ রয়েছে। রিমাইন্ডার পেতে ফোনের সেটিংস থেকে চালু করুন।',
+                                    style: const TextStyle(
+                                      fontFamily: 'Noto Sans Bengali',
+                                      fontSize: 12,
+                                      color: Color(0xFFE65100),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                TextButton(
+                                  onPressed: () => NotificationService.instance
+                                      .openNotificationSettings(),
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 4),
+                                    backgroundColor: const Color(0xFFE65100),
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  child: Text(
+                                    state.isEnglish ? 'Settings' : 'সেটিংস',
+                                    style: const TextStyle(
+                                      fontFamily: 'Noto Sans Bengali',
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
                     SwitchListTile.adaptive(
                       contentPadding: EdgeInsets.zero,
                       activeTrackColor: AppColors.primary,
@@ -126,8 +201,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         subtitle: Text(
                           state.isEnglish
-                              ? 'Gentle daytime reminders to drink water'
-                              : 'দিনের নির্দিষ্ট বিরতিতে পানি পানের রিমাইন্ডার',
+                              ? 'Gentle daytime reminders between 10 AM - 8 PM'
+                              : 'সকাল ১০টা থেকে রাত ৮টা পর্যন্ত নিয়মিত রিমাইন্ডার',
                           style: const TextStyle(
                             fontFamily: 'Noto Sans Bengali',
                             fontSize: 11.5,
@@ -140,6 +215,72 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           await NotificationService.instance.syncAllReminders();
                         },
                       ),
+                      if (state.notifWater) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(left: 48, bottom: 8, right: 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                state.isEnglish
+                                    ? 'Reminder Interval:'
+                                    : 'পানি পানের বিরতি:',
+                                style: const TextStyle(
+                                  fontFamily: 'Noto Sans Bengali',
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 4,
+                                children: [1, 2, 3].map((hours) {
+                                  final isSel = state.waterReminderInterval == hours;
+                                  const bengaliDigits = {'1': '১', '2': '২', '3': '৩'};
+                                  final label = state.isEnglish
+                                      ? '$hours hr'
+                                      : '${bengaliDigits[hours.toString()] ?? hours} ঘণ্টা পর পর';
+                                  return ChoiceChip(
+                                    label: Text(
+                                      label,
+                                      style: TextStyle(
+                                        fontFamily: 'Noto Sans Bengali',
+                                        fontSize: 11.5,
+                                        fontWeight: isSel
+                                            ? FontWeight.w700
+                                            : FontWeight.w500,
+                                        color: isSel
+                                            ? Colors.white
+                                            : AppColors.onSurface,
+                                      ),
+                                    ),
+                                    selected: isSel,
+                                    selectedColor: const Color(0xFF0288D1),
+                                    onSelected: (_) async {
+                                      await state.setWaterReminderSchedule(
+                                          interval: hours);
+                                    },
+                                  );
+                                }).toList(),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                state.isEnglish
+                                    ? 'Daily goal reached auto-suppresses remaining alerts.'
+                                    : 'দৈনিক লক্ষ্য পূরণ হলে আজকের বাকি রিমাইন্ডার স্বয়ংক্রিয়ভাবে বন্ধ থাকবে।',
+                                style: const TextStyle(
+                                  fontFamily: 'Noto Sans Bengali',
+                                  fontSize: 11,
+                                  color: Color(0xFF0288D1),
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       SwitchListTile.adaptive(
                         contentPadding: EdgeInsets.zero,
                         activeTrackColor: AppColors.primary,
@@ -164,8 +305,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         subtitle: Text(
                           state.isEnglish
-                              ? 'Morning care and nutrition guidance'
-                              : 'সকাল ৯টায় পুষ্টি ও স্বাস্থ্য নির্দেশিকা',
+                              ? 'Delivered at ${state.dailyCareTime.format(context)}'
+                              : 'প্রতিদিন সকাল ${state.dailyCareHour > 12 ? state.dailyCareHour - 12 : state.dailyCareHour}:${state.dailyCareMinute.toString().padLeft(2, "0")} মিনিটে স্বাস্থ্য পরামর্শ',
                           style: const TextStyle(
                             fontFamily: 'Noto Sans Bengali',
                             fontSize: 11.5,
@@ -178,6 +319,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           await NotificationService.instance.syncAllReminders();
                         },
                       ),
+                      if (state.notifDailyCare) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(left: 48, bottom: 8, right: 8),
+                          child: Row(
+                            children: [
+                              Text(
+                                state.isEnglish ? 'Delivery Time:' : 'বার্তার সময়:',
+                                style: const TextStyle(
+                                  fontFamily: 'Noto Sans Bengali',
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              OutlinedButton.icon(
+                                onPressed: () async {
+                                  final picked = await showTimePicker(
+                                    context: context,
+                                    initialTime: state.dailyCareTime,
+                                  );
+                                  if (picked != null) {
+                                    await state.setDailyCareTime(
+                                        picked.hour, picked.minute);
+                                  }
+                                },
+                                icon: const Icon(Icons.access_time_rounded,
+                                    size: 15),
+                                label: Text(
+                                  state.dailyCareTime.format(context),
+                                  style: const TextStyle(
+                                    fontFamily: 'Noto Sans Bengali',
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       SwitchListTile.adaptive(
                         contentPadding: EdgeInsets.zero,
                         activeTrackColor: const Color(0xFF2E7D32),
@@ -262,6 +449,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(AppRadius.md),
                           ),

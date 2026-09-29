@@ -38,6 +38,10 @@ import 'package:mombee_app/models/appointment.dart';
 import 'package:mombee_app/models/vaccine_item.dart';
 import 'package:mombee_app/services/daily_message_service.dart';
 import 'package:mombee_app/services/notification_service.dart';
+import 'package:mombee_app/models/notification_item.dart';
+import 'package:mombee_app/screens/notifications/notification_center_screen.dart';
+import 'package:mombee_app/widgets/notification_permission_dialog.dart';
+import 'package:mombee_app/screens/home/home_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -1708,6 +1712,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(AppState.instance.notifWater, isFalse);
 
+      await tester.ensureVisible(find.text('সম্পন্ন'));
       await tester.tap(find.text('সম্পন্ন'));
       await tester.pumpAndSettle();
     });
@@ -2008,6 +2013,300 @@ void main() {
       await notifService.cancelAll();
 
       expect(notifService, isNotNull);
+    });
+  });
+
+  group('21. Production Local Notification Flow & Hierarchy Refinements Audit', () {
+    test('NotificationLogItem model serializes and deserializes correctly', () {
+      final now = DateTime(2026, 9, 29, 10, 30);
+      final item = NotificationLogItem(
+        id: 'test_item_1',
+        title: 'টেস্ট নোটিফিকেশন',
+        body: 'এটি একটি টেস্ট বার্তা।',
+        category: NotificationCategory.water,
+        timestamp: now,
+        isRead: false,
+      );
+
+      final json = item.toJson();
+      expect(json['id'], 'test_item_1');
+      expect(json['title'], 'টেস্ট নোটিফিকেশন');
+      expect(json['category'], 'water');
+      expect(json['isRead'], isFalse);
+
+      final restored = NotificationLogItem.fromJson(json);
+      expect(restored.id, item.id);
+      expect(restored.title, item.title);
+      expect(restored.body, item.body);
+      expect(restored.category, item.category);
+      expect(restored.timestamp, item.timestamp);
+      expect(restored.isRead, isFalse);
+
+      final updated = restored.copyWith(isRead: true);
+      expect(updated.isRead, isTrue);
+      expect(updated.id, restored.id);
+    });
+
+    test(
+        'LocalStorageService persists water intervals, custom times, and permission prompt state',
+        () async {
+      await LocalStorageService.saveWaterReminderInterval(2);
+      expect(await LocalStorageService.getWaterReminderInterval(), 2);
+
+      await LocalStorageService.saveWaterReminderStartHour(9);
+      expect(await LocalStorageService.getWaterReminderStartHour(), 9);
+
+      await LocalStorageService.saveWaterReminderEndHour(21);
+      expect(await LocalStorageService.getWaterReminderEndHour(), 21);
+
+      await LocalStorageService.saveDailyCareTime(8, 45);
+      expect(await LocalStorageService.getDailyCareHour(), 8);
+      expect(await LocalStorageService.getDailyCareMinute(), 45);
+
+      await LocalStorageService.saveNotificationPermissionPrompted(true);
+      expect(
+          await LocalStorageService.hasPromptedNotificationPermission(), isTrue);
+
+      final testLogs = [
+        NotificationLogItem(
+          id: 'log_1',
+          title: 'পানি পান',
+          body: 'পানি পান করুন',
+          category: NotificationCategory.water,
+          timestamp: DateTime.now(),
+        ),
+      ];
+      await LocalStorageService.saveNotificationHistory(testLogs);
+      final savedLogs = await LocalStorageService.getNotificationHistory();
+      expect(savedLogs.length, 1);
+      expect(savedLogs.first.id, 'log_1');
+    });
+
+    test(
+        'NotificationService calculates configurable hourly water reminder slots',
+        () {
+      final notifService = NotificationService.instance;
+
+      // Default: interval 1h from 10 to 20 -> 11 slots
+      final hours1 = notifService.getWaterReminderHours(
+          interval: 1, startHour: 10, endHour: 20);
+      expect(hours1, [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]);
+      expect(hours1.length, 11);
+
+      // Interval 2h from 10 to 20 -> 6 slots
+      final hours2 = notifService.getWaterReminderHours(
+          interval: 2, startHour: 10, endHour: 20);
+      expect(hours2, [10, 12, 14, 16, 18, 20]);
+      expect(hours2.length, 6);
+
+      // Interval 3h from 10 to 20 -> 4 slots
+      final hours3 = notifService.getWaterReminderHours(
+          interval: 3, startHour: 10, endHour: 20);
+      expect(hours3, [10, 13, 16, 19]);
+      expect(hours3.length, 4);
+    });
+
+    test(
+        'AppState water logging triggers auto-suppression when target is reached',
+        () async {
+      await AppState.instance
+          .setWaterConfig(glassSizeMl: 250, dailyTargetMl: 1000);
+      await AppState.instance.resetTodayWater();
+      expect(AppState.instance.isWaterTargetReached, isFalse);
+
+      await AppState.instance.addWaterGlass();
+      await AppState.instance.addWaterGlass();
+      await AppState.instance.addWaterGlass();
+      expect(AppState.instance.waterGlasses, 3);
+      expect(AppState.instance.isWaterTargetReached, isFalse);
+
+      // 4th glass reaches target
+      await AppState.instance.addWaterGlass();
+      expect(AppState.instance.waterGlasses, 4);
+      expect(AppState.instance.isWaterTargetReached, isTrue);
+
+      // Removing a glass re-enables reminders
+      await AppState.instance.removeWaterGlass();
+      expect(AppState.instance.waterGlasses, 3);
+      expect(AppState.instance.isWaterTargetReached, isFalse);
+    });
+
+    test(
+        'Notification history management: add, unread count, and mark as read',
+        () async {
+      final notifService = NotificationService.instance;
+      await notifService.clearHistory();
+      expect(notifService.unreadCount, 0);
+
+      final item1 = NotificationLogItem(
+        id: 'hist_1',
+        title: 'পানি পানের তাগিদ',
+        body: 'শরীর সুস্থ রাখুন',
+        category: NotificationCategory.water,
+        timestamp: DateTime.now(),
+        isRead: false,
+      );
+      final item2 = NotificationLogItem(
+        id: 'hist_2',
+        title: 'দৈনিক যত্ন',
+        body: 'পুষ্টিকর খাদ্য গ্রহণ করুন',
+        category: NotificationCategory.dailyCare,
+        timestamp: DateTime.now(),
+        isRead: false,
+      );
+
+      await notifService.addHistoryItem(item1);
+      await notifService.addHistoryItem(item2);
+      expect(notifService.history.length, 2);
+      expect(notifService.unreadCount, 2);
+
+      await notifService.markAsRead('hist_1');
+      expect(notifService.unreadCount, 1);
+
+      await notifService.markAllAsRead();
+      expect(notifService.unreadCount, 0);
+    });
+
+    testWidgets(
+        'NotificationPermissionDialog renders with Bengali rationale and buttons',
+        (WidgetTester tester) async {
+      await LocalStorageService.saveNotificationPermissionPrompted(false);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: NotificationPermissionDialog()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('নোটিফিকেশন রিমাইন্ডার চালু করুন'), findsOneWidget);
+      expect(find.textContaining('সঠিক সময়ে পানি পানের তাগিদ'), findsOneWidget);
+      expect(find.text('অনুমতি দিন'), findsOneWidget);
+      expect(find.text('পরে করব'), findsOneWidget);
+
+      await tester.tap(find.text('অনুমতি দিন'));
+      await tester.pumpAndSettle();
+      expect(
+          await LocalStorageService.hasPromptedNotificationPermission(), isTrue);
+    });
+
+    testWidgets(
+        'NotificationCenterScreen renders filter chips, notification cards, and mark all read',
+        (WidgetTester tester) async {
+      final notifService = NotificationService.instance;
+      await notifService.clearHistory();
+      await notifService.addHistoryItem(
+        NotificationLogItem(
+          id: 'nc_test_water',
+          title: 'পানি পান করুন',
+          body: 'এক গ্লাস পানি পান করার সময় হয়েছে।',
+          category: NotificationCategory.water,
+          timestamp: DateTime.now(),
+          isRead: false,
+        ),
+      );
+      await notifService.addHistoryItem(
+        NotificationLogItem(
+          id: 'nc_test_care',
+          title: 'দৈনিক যত্ন বার্তা',
+          body: 'আজকের সুস্থতা নির্দেশিকা পড়ুন।',
+          category: NotificationCategory.dailyCare,
+          timestamp: DateTime.now(),
+          isRead: false,
+        ),
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: NotificationCenterScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('নোটিফিকেশন সেন্টার'), findsOneWidget);
+      expect(find.text('সবগুলো'), findsOneWidget);
+      expect(find.text('দৈনিক যত্ন'), findsOneWidget);
+      expect(find.text('পানি পান'), findsOneWidget);
+      expect(find.text('পানি পান করুন'), findsOneWidget);
+      expect(find.text('দৈনিক যত্ন বার্তা'), findsOneWidget);
+      expect(find.text('সব পঠিত'), findsOneWidget);
+
+      // Tap 'সব পঠিত'
+      await tester.tap(find.text('সব পঠিত'));
+      await tester.pumpAndSettle();
+      expect(AppState.instance.unreadNotificationCount, 0);
+
+      // Tap filter chip 'পানি পান'
+      await tester.tap(find.text('পানি পান'));
+      await tester.pumpAndSettle();
+      expect(find.text('পানি পান করুন'), findsOneWidget);
+      expect(find.text('দৈনিক যত্ন বার্তা'), findsNothing);
+    });
+
+    testWidgets(
+        'HomeScreen bell icon shows unread count badge and opens NotificationCenterScreen',
+        (WidgetTester tester) async {
+      await LocalStorageService.saveNotificationPermissionPrompted(true);
+      final notifService = NotificationService.instance;
+      await notifService.clearHistory();
+      await notifService.addHistoryItem(
+        NotificationLogItem(
+          id: 'badge_test',
+          title: 'নতুন নোটিফিকেশন',
+          body: 'পরীক্ষামূলক বার্তা',
+          category: NotificationCategory.general,
+          timestamp: DateTime.now(),
+          isRead: false,
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const HomeScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Verify unread badge shows '1'
+      expect(find.text('1'), findsOneWidget);
+      expect(find.byIcon(Icons.notifications_none_rounded), findsOneWidget);
+
+      // Tap bell icon
+      await tester.tap(find.byIcon(Icons.notifications_none_rounded));
+      await tester.pumpAndSettle();
+
+      // Verify NotificationCenterScreen opened
+      expect(find.text('নোটিফিকেশন সেন্টার'), findsOneWidget);
+    });
+
+    testWidgets(
+        'HomePregnantScreen layout displays refined hierarchy without overflow',
+        (WidgetTester tester) async {
+      await AppState.instance.setUserName('মারিয়া');
+      final lmp = DateTime.now().subtract(const Duration(days: 157));
+      await AppState.instance.updatePregnancyWithLMP(lmp);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const Scaffold(body: HomePregnantScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 1. Greeting
+      expect(find.textContaining('সুপ্রভাত, মারিয়া'), findsOneWidget);
+      // 2. Pregnancy week and total days counters
+      expect(
+          find.text(AppState.instance.pregnancyProgressAgeText), findsOneWidget);
+      expect(
+          find.text(AppState.instance.pregnancyTotalDaysText), findsOneWidget);
+      // 3. DailyMessageCard
+      expect(find.byType(DailyMessageCard), findsOneWidget);
+      // 4. Quick trackers grid
+      expect(find.text('পিরিয়ড\nট্র্যাকার'), findsOneWidget);
+      expect(find.text('প্রেগন্যান্সি\nট্র্যাকার'), findsOneWidget);
     });
   });
 }

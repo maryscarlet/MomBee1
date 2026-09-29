@@ -6,6 +6,7 @@ import '../models/baby_data.dart';
 import '../models/period_data.dart';
 import '../models/appointment.dart';
 import '../models/vaccine_item.dart';
+import '../models/notification_item.dart';
 import '../data/vaccines_data.dart';
 
 class LocalStorageService {
@@ -22,6 +23,17 @@ class LocalStorageService {
   static const String _kNotifDailyCareKey = 'mombee_notif_daily_care';
   static const String _kNotifAppointmentsKey = 'mombee_notif_appointments';
   static const String _kNotifVaccinesKey = 'mombee_notif_vaccines';
+  static const String _kWaterReminderIntervalKey =
+      'mombee_water_reminder_interval';
+  static const String _kWaterReminderStartHourKey =
+      'mombee_water_reminder_start_hour';
+  static const String _kWaterReminderEndHourKey =
+      'mombee_water_reminder_end_hour';
+  static const String _kDailyCareHourKey = 'mombee_daily_care_hour';
+  static const String _kDailyCareMinuteKey = 'mombee_daily_care_minute';
+  static const String _kNotificationPermissionPromptedKey =
+      'mombee_notif_perm_prompted';
+  static const String _kNotificationHistoryKey = 'mombee_notif_history';
   static const String _kAppointmentsKey = 'mombee_appointments_list';
   static const String _kVaccinesKey = 'mombee_vaccines_list';
   static const String _kLanguageKey = 'mombee_app_language';
@@ -218,6 +230,91 @@ class LocalStorageService {
     return prefs.getBool(_kNotifVaccinesKey) ?? true;
   }
 
+  // ---------------- WATER REMINDER SCHEDULE ----------------
+  static Future<void> saveWaterReminderInterval(int hours) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_kWaterReminderIntervalKey, hours);
+  }
+
+  static Future<int> getWaterReminderInterval() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_kWaterReminderIntervalKey) ?? 1;
+  }
+
+  static Future<void> saveWaterReminderStartHour(int hour) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_kWaterReminderStartHourKey, hour);
+  }
+
+  static Future<int> getWaterReminderStartHour() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_kWaterReminderStartHourKey) ?? 10;
+  }
+
+  static Future<void> saveWaterReminderEndHour(int hour) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_kWaterReminderEndHourKey, hour);
+  }
+
+  static Future<int> getWaterReminderEndHour() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_kWaterReminderEndHourKey) ?? 20;
+  }
+
+  // ---------------- DAILY CARE TIME ----------------
+  static Future<void> saveDailyCareTime(int hour, int minute) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_kDailyCareHourKey, hour);
+    await prefs.setInt(_kDailyCareMinuteKey, minute);
+  }
+
+  static Future<int> getDailyCareHour() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_kDailyCareHourKey) ?? 9;
+  }
+
+  static Future<int> getDailyCareMinute() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_kDailyCareMinuteKey) ?? 0;
+  }
+
+  // ---------------- NOTIFICATION PERMISSION PROMPT ----------------
+  static Future<void> saveNotificationPermissionPrompted(bool prompted) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kNotificationPermissionPromptedKey, prompted);
+  }
+
+  static Future<bool> hasPromptedNotificationPermission() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_kNotificationPermissionPromptedKey) ?? false;
+  }
+
+  // ---------------- NOTIFICATION HISTORY ----------------
+  static Future<void> saveNotificationHistory(
+      List<NotificationLogItem> list) async {
+    final prefs = await SharedPreferences.getInstance();
+    final trimmed = list.length > 50 ? list.sublist(0, 50) : list;
+    final jsonList = trimmed.map((item) => item.toJson()).toList();
+    await prefs.setString(_kNotificationHistoryKey, jsonEncode(jsonList));
+  }
+
+  static Future<List<NotificationLogItem>> getNotificationHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonString = prefs.getString(_kNotificationHistoryKey);
+    if (jsonString == null) {
+      return [];
+    }
+    try {
+      final decoded = jsonDecode(jsonString) as List<dynamic>;
+      return decoded
+          .map((item) =>
+              NotificationLogItem.fromJson(item as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
   // ---------------- APPOINTMENTS ----------------
   static Future<void> saveAppointments(List<Appointment> list) async {
     final prefs = await SharedPreferences.getInstance();
@@ -334,6 +431,13 @@ class LocalStorageService {
     await prefs.remove(_kNotifDailyCareKey);
     await prefs.remove(_kNotifAppointmentsKey);
     await prefs.remove(_kNotifVaccinesKey);
+    await prefs.remove(_kWaterReminderIntervalKey);
+    await prefs.remove(_kWaterReminderStartHourKey);
+    await prefs.remove(_kWaterReminderEndHourKey);
+    await prefs.remove(_kDailyCareHourKey);
+    await prefs.remove(_kDailyCareMinuteKey);
+    await prefs.remove(_kNotificationPermissionPromptedKey);
+    await prefs.remove(_kNotificationHistoryKey);
     await prefs.remove(_kAppointmentsKey);
     await prefs.remove(_kVaccinesKey);
     await prefs.remove(_kDailyMessageDismissedDateKey);

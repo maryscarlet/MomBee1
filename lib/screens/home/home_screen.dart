@@ -2,14 +2,29 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../models/journey_type.dart';
 import '../../state/app_state.dart';
+import '../../widgets/notification_permission_dialog.dart';
+import '../notifications/notification_center_screen.dart';
 import 'views/home_planning_view.dart';
 import 'home_pregnant_screen.dart';
 import 'views/home_baby_view.dart';
 import 'views/home_general_view.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   final Function(int)? onNavigateTab;
   const HomeScreen({super.key, this.onNavigateTab});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NotificationPermissionDialog.checkAndShow(context);
+    });
+  }
 
   void _showChangeJourneyDialog(BuildContext context) {
     showModalBottomSheet(
@@ -29,70 +44,72 @@ class HomeScreen extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceDim,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const Text(
-              'আপনার Journey পরিবর্তন করুন',
-              style: TextStyle(
-                fontFamily: 'Noto Sans Bengali',
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: AppColors.onSurface,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ...JourneyType.values.map((journey) {
-              final isCurrent = AppState.instance.selectedJourney == journey;
-              return ListTile(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-                tileColor: isCurrent
-                    ? AppColors.primary.withValues(alpha: 0.08)
-                    : null,
-                leading: Icon(
-                  journey == JourneyType.planning
-                      ? Icons.favorite_rounded
-                      : journey == JourneyType.pregnant
-                          ? Icons.pregnant_woman_rounded
-                          : journey == JourneyType.baby
-                              ? Icons.child_care_rounded
-                              : Icons.menu_book_rounded,
-                  color: isCurrent ? AppColors.primary : AppColors.outline,
-                ),
-                title: Text(
-                  journey.titleBangla,
-                  style: TextStyle(
-                    fontFamily: 'Noto Sans Bengali',
-                    fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
-                    color: isCurrent ? AppColors.primary : AppColors.onSurface,
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceDim,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-                trailing: isCurrent
-                    ? const Icon(Icons.check_circle_rounded,
-                        color: AppColors.primary)
-                    : null,
-                onTap: () async {
-                  await AppState.instance.setJourney(journey);
-                  if (context.mounted) Navigator.pop(context);
-                },
-              );
-            }),
-          ],
+                const Text(
+                  'আপনার Journey পরিবর্তন করুন',
+                  style: TextStyle(
+                    fontFamily: 'Noto Sans Bengali',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...JourneyType.values.map((journey) {
+                  final isCurrent = AppState.instance.selectedJourney == journey;
+                  return ListTile(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    tileColor: isCurrent
+                        ? AppColors.primary.withValues(alpha: 0.08)
+                        : null,
+                    leading: Icon(
+                      journey == JourneyType.planning
+                          ? Icons.favorite_rounded
+                          : journey == JourneyType.pregnant
+                              ? Icons.pregnant_woman_rounded
+                              : journey == JourneyType.baby
+                                  ? Icons.child_care_rounded
+                                  : Icons.menu_book_rounded,
+                      color: isCurrent ? AppColors.primary : AppColors.outline,
+                    ),
+                    title: Text(
+                      journey.titleBangla,
+                      style: TextStyle(
+                        fontFamily: 'Noto Sans Bengali',
+                        fontWeight:
+                            isCurrent ? FontWeight.w700 : FontWeight.w500,
+                        color:
+                            isCurrent ? AppColors.primary : AppColors.onSurface,
+                      ),
+                    ),
+                    trailing: isCurrent
+                        ? const Icon(Icons.check_circle_rounded,
+                            color: AppColors.primary)
+                        : null,
+                    onTap: () async {
+                      await AppState.instance.setJourney(journey);
+                      if (context.mounted) Navigator.pop(context);
+                    },
+                  );
+                }),
+              ],
+            ),
+          ),
         ),
       ),
-    ),
-  ),
-);
+    );
   }
 
   @override
@@ -101,6 +118,7 @@ class HomeScreen extends StatelessWidget {
       listenable: AppState.instance,
       builder: (context, _) {
         final currentJourney = AppState.instance.selectedJourney;
+        final unreadCount = AppState.instance.unreadNotificationCount;
 
         return Scaffold(
           backgroundColor: AppColors.background,
@@ -131,7 +149,7 @@ class HomeScreen extends StatelessWidget {
             actions: [
               // Active Journey Switcher Chip on Maroon Header
               Padding(
-                padding: const EdgeInsets.only(right: 8.0),
+                padding: const EdgeInsets.only(right: 6.0),
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
@@ -182,18 +200,60 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.notifications_none_rounded,
-                    color: Colors.white),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('আপাতত নতুন কোনো নোটিফিকেশন নেই।',
-                          style: TextStyle(fontFamily: 'Noto Sans Bengali')),
-                      duration: Duration(seconds: 2),
+              // Bell Icon with dynamic Unread Notification Badge
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_none_rounded,
+                        color: Colors.white),
+                    tooltip: 'নোটিফিকেশন সেন্টার',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              const NotificationCenterScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: IgnorePointer(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 4, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFECB17),
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.2),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            unreadCount > 9 ? '৯+' : '$unreadCount',
+                            style: const TextStyle(
+                              color: Color(0xFF91002B),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              fontFamily: 'Noto Sans Bengali',
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
                     ),
-                  );
-                },
+                ],
               ),
             ],
           ),
@@ -218,13 +278,13 @@ class HomeScreen extends StatelessWidget {
   Widget _buildJourneyHome(JourneyType journey) {
     switch (journey) {
       case JourneyType.planning:
-        return HomePlanningView(onNavigateTab: onNavigateTab);
+        return HomePlanningView(onNavigateTab: widget.onNavigateTab);
       case JourneyType.pregnant:
-        return HomePregnantScreen(onNavigateTab: onNavigateTab);
+        return HomePregnantScreen(onNavigateTab: widget.onNavigateTab);
       case JourneyType.baby:
-        return HomeBabyView(onNavigateTab: onNavigateTab);
+        return HomeBabyView(onNavigateTab: widget.onNavigateTab);
       case JourneyType.general:
-        return HomeGeneralView(onNavigateTab: onNavigateTab);
+        return HomeGeneralView(onNavigateTab: widget.onNavigateTab);
     }
   }
 }
