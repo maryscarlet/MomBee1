@@ -1,7 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../../theme/app_theme.dart';
 import '../../models/notification_item.dart';
 import '../../state/app_state.dart';
+import '../../services/notification_service.dart';
+import '../../services/notification_navigation_handler.dart';
 import 'package:intl/intl.dart';
 
 class NotificationCenterScreen extends StatefulWidget {
@@ -161,6 +165,71 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                 ),
               ),
               const Divider(height: 1, thickness: 1, color: AppColors.surfaceDim),
+              if (kDebugMode)
+                Container(
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(color: const Color(0xFF81C784)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.bug_report_rounded,
+                          size: 18, color: Color(0xFF2E7D32)),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'টেস্ট মোড: বাটনে চাপ দিলে তাৎক্ষণিক অ্যান্ড্রয়েড নোটিফিকেশন আসবে।',
+                          style: TextStyle(
+                            fontFamily: 'Noto Sans Bengali',
+                            fontSize: 11.5,
+                            color: Color(0xFF1B5E20),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          final res = await NotificationService.instance
+                              .sendTestNotification(delaySeconds: 0);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  res['message'] ?? '',
+                                  style: const TextStyle(
+                                      fontFamily: 'Noto Sans Bengali'),
+                                ),
+                                backgroundColor: res['success'] == true
+                                    ? const Color(0xFF2E7D32)
+                                    : const Color(0xFFC2185B),
+                                duration: const Duration(seconds: 4),
+                              ),
+                            );
+                          }
+                        },
+                        style: TextButton.styleFrom(
+                          backgroundColor: const Color(0xFF2E7D32),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                        ),
+                        child: const Text(
+                          'টেস্ট পাঠান',
+                          style: TextStyle(
+                            fontFamily: 'Noto Sans Bengali',
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
               // Notification List
               Expanded(
@@ -181,6 +250,12 @@ class _NotificationCenterScreenState extends State<NotificationCenterScreen> {
                               if (!item.isRead) {
                                 await AppState.instance
                                     .markNotificationAsRead(item.id);
+                              }
+                              final payload = item.payload ??
+                                  jsonEncode({'type': item.category});
+                              if (item.category != NotificationCategory.general) {
+                                NotificationNavigationHandler.instance
+                                    .handlePayload(payload);
                               }
                             },
                             borderRadius: BorderRadius.circular(AppRadius.lg),

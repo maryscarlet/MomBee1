@@ -81,18 +81,26 @@ class AppState extends ChangeNotifier {
   bool _notifDailyCare = true;
   bool _notifAppointments = true;
   bool _notifVaccines = true;
+  bool _notifPeriod = true;
+  bool _notifOvulation = true;
 
   int _waterReminderInterval = 1;
   int _waterReminderStartHour = 10;
   int _waterReminderEndHour = 20;
   int _dailyCareHour = 9;
   int _dailyCareMinute = 0;
+  int _periodReminderHour = 9;
+  int _periodReminderMinute = 0;
+  int _ovulationReminderHour = 9;
+  int _ovulationReminderMinute = 0;
 
   bool get notificationsEnabled => _notificationsEnabled;
   bool get notifWater => _notifWater;
   bool get notifDailyCare => _notifDailyCare;
   bool get notifAppointments => _notifAppointments;
   bool get notifVaccines => _notifVaccines;
+  bool get notifPeriod => _notifPeriod;
+  bool get notifOvulation => _notifOvulation;
 
   int get waterReminderInterval => _waterReminderInterval;
   int get waterReminderStartHour => _waterReminderStartHour;
@@ -101,6 +109,16 @@ class AppState extends ChangeNotifier {
   int get dailyCareMinute => _dailyCareMinute;
   TimeOfDay get dailyCareTime =>
       TimeOfDay(hour: _dailyCareHour, minute: _dailyCareMinute);
+
+  int get periodReminderHour => _periodReminderHour;
+  int get periodReminderMinute => _periodReminderMinute;
+  TimeOfDay get periodReminderTime =>
+      TimeOfDay(hour: _periodReminderHour, minute: _periodReminderMinute);
+
+  int get ovulationReminderHour => _ovulationReminderHour;
+  int get ovulationReminderMinute => _ovulationReminderMinute;
+  TimeOfDay get ovulationReminderTime =>
+      TimeOfDay(hour: _ovulationReminderHour, minute: _ovulationReminderMinute);
 
   List<NotificationLogItem> get notificationHistory =>
       NotificationService.instance.history;
@@ -164,6 +182,8 @@ class AppState extends ChangeNotifier {
     _notifDailyCare = await LocalStorageService.getDailyCareNotifEnabled();
     _notifAppointments = await LocalStorageService.getAppointmentsNotifEnabled();
     _notifVaccines = await LocalStorageService.getVaccinesNotifEnabled();
+    _notifPeriod = await LocalStorageService.getPeriodNotifEnabled();
+    _notifOvulation = await LocalStorageService.getOvulationNotifEnabled();
     _waterReminderInterval =
         await LocalStorageService.getWaterReminderInterval();
     _waterReminderStartHour =
@@ -172,6 +192,10 @@ class AppState extends ChangeNotifier {
         await LocalStorageService.getWaterReminderEndHour();
     _dailyCareHour = await LocalStorageService.getDailyCareHour();
     _dailyCareMinute = await LocalStorageService.getDailyCareMinute();
+    _periodReminderHour = await LocalStorageService.getPeriodReminderHour();
+    _periodReminderMinute = await LocalStorageService.getPeriodReminderMinute();
+    _ovulationReminderHour = await LocalStorageService.getOvulationReminderHour();
+    _ovulationReminderMinute = await LocalStorageService.getOvulationReminderMinute();
     _appointments = await LocalStorageService.getAppointments();
     _vaccines = await LocalStorageService.getVaccines();
     _language = await LocalStorageService.getLanguage();
@@ -218,6 +242,22 @@ class AppState extends ChangeNotifier {
   Future<void> setJourney(JourneyType journey) async {
     _selectedJourney = journey;
     await LocalStorageService.saveJourneyType(journey);
+    if (NotificationService.instance.isInitialized) {
+      if (_notifDailyCare) {
+        await NotificationService.instance.scheduleDailyCareReminder();
+      }
+      if (journey == JourneyType.pregnant) {
+        await NotificationService.instance.cancelPeriodReminder();
+        await NotificationService.instance.cancelOvulationReminder();
+      } else {
+        if (_notifPeriod) {
+          await NotificationService.instance.schedulePeriodReminder();
+        }
+        if (_notifOvulation) {
+          await NotificationService.instance.scheduleOvulationReminder();
+        }
+      }
+    }
     notifyListeners();
   }
 
@@ -229,6 +269,9 @@ class AppState extends ChangeNotifier {
       isSetup: true,
     );
     await LocalStorageService.savePregnancyData(_pregnancyData);
+    if (NotificationService.instance.isInitialized && _notifDailyCare) {
+      await NotificationService.instance.scheduleDailyCareReminder();
+    }
     notifyListeners();
   }
 
@@ -239,12 +282,18 @@ class AppState extends ChangeNotifier {
       isSetup: true,
     );
     await LocalStorageService.savePregnancyData(_pregnancyData);
+    if (NotificationService.instance.isInitialized && _notifDailyCare) {
+      await NotificationService.instance.scheduleDailyCareReminder();
+    }
     notifyListeners();
   }
 
   Future<void> resetPregnancySetup() async {
     _pregnancyData = const PregnancyData(isSetup: false);
     await LocalStorageService.savePregnancyData(_pregnancyData);
+    if (NotificationService.instance.isInitialized && _notifDailyCare) {
+      await NotificationService.instance.scheduleDailyCareReminder();
+    }
     notifyListeners();
   }
 
@@ -261,6 +310,9 @@ class AppState extends ChangeNotifier {
       isSetup: true,
     );
     await LocalStorageService.saveBabyData(_babyData);
+    if (NotificationService.instance.isInitialized && _notifDailyCare) {
+      await NotificationService.instance.scheduleDailyCareReminder();
+    }
     notifyListeners();
   }
 
@@ -270,6 +322,24 @@ class AppState extends ChangeNotifier {
       isSetup: false,
     );
     await LocalStorageService.saveBabyData(_babyData);
+    if (NotificationService.instance.isInitialized && _notifDailyCare) {
+      await NotificationService.instance.scheduleDailyCareReminder();
+    }
+    notifyListeners();
+  }
+
+  Future<void> resetPeriodSetup() async {
+    _periodData = PeriodData(
+      lastPeriodDate: DateTime.now(),
+      cycleLength: 28,
+      periodDuration: 5,
+      isSetup: false,
+    );
+    await LocalStorageService.savePeriodData(_periodData);
+    if (NotificationService.instance.isInitialized) {
+      await NotificationService.instance.cancelPeriodReminder();
+      await NotificationService.instance.cancelOvulationReminder();
+    }
     notifyListeners();
   }
 
@@ -304,6 +374,19 @@ class AppState extends ChangeNotifier {
       isSetup: true,
     );
     await LocalStorageService.savePeriodData(_periodData);
+    if (NotificationService.instance.isInitialized) {
+      if (_notifDailyCare) {
+        await NotificationService.instance.scheduleDailyCareReminder();
+      }
+      if (_selectedJourney != JourneyType.pregnant) {
+        if (_notifPeriod) {
+          await NotificationService.instance.schedulePeriodReminder();
+        }
+        if (_notifOvulation) {
+          await NotificationService.instance.scheduleOvulationReminder();
+        }
+      }
+    }
     notifyListeners();
   }
 
@@ -451,6 +534,36 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setNotifPeriod(bool enabled) async {
+    _notifPeriod = enabled;
+    await LocalStorageService.savePeriodNotifEnabled(enabled);
+    await NotificationService.instance.syncAllReminders();
+    notifyListeners();
+  }
+
+  Future<void> setNotifOvulation(bool enabled) async {
+    _notifOvulation = enabled;
+    await LocalStorageService.saveOvulationNotifEnabled(enabled);
+    await NotificationService.instance.syncAllReminders();
+    notifyListeners();
+  }
+
+  Future<void> setPeriodReminderTime(int hour, int minute) async {
+    _periodReminderHour = hour;
+    _periodReminderMinute = minute;
+    await LocalStorageService.savePeriodReminderTime(hour, minute);
+    await NotificationService.instance.schedulePeriodReminder();
+    notifyListeners();
+  }
+
+  Future<void> setOvulationReminderTime(int hour, int minute) async {
+    _ovulationReminderHour = hour;
+    _ovulationReminderMinute = minute;
+    await LocalStorageService.saveOvulationReminderTime(hour, minute);
+    await NotificationService.instance.scheduleOvulationReminder();
+    notifyListeners();
+  }
+
   // ---------------- APPOINTMENT ACTIONS ----------------
   Future<void> addAppointment(Appointment app) async {
     _appointments.add(app);
@@ -534,11 +647,17 @@ class AppState extends ChangeNotifier {
     _notifDailyCare = true;
     _notifAppointments = true;
     _notifVaccines = true;
+    _notifPeriod = true;
+    _notifOvulation = true;
     _waterReminderInterval = 1;
     _waterReminderStartHour = 10;
     _waterReminderEndHour = 20;
     _dailyCareHour = 9;
     _dailyCareMinute = 0;
+    _periodReminderHour = 9;
+    _periodReminderMinute = 0;
+    _ovulationReminderHour = 9;
+    _ovulationReminderMinute = 0;
     await NotificationService.instance.clearHistory();
     _appointments = [];
     _vaccines = await LocalStorageService.getVaccines();

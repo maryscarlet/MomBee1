@@ -20,3 +20,6 @@ android/.gradle/
 
 # Generated files
 *.iml
+
+# Backup files
+*.bak

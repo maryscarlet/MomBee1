@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
-import '../../models/article.dart';
-import '../../models/journey_type.dart';
 import '../../models/pregnancy_data.dart';
 import '../../data/pregnancy_weeks_data.dart';
 import '../../state/app_state.dart';
 import '../../widgets/daily_message_card.dart';
-import '../../widgets/article_widgets.dart';
-import '../../widgets/fetal_development_visual.dart';
+import 'widgets/home_greeting_header.dart';
 import '../pregnancy/pregnancy_week_guide_screen.dart';
 import '../tracker/period_tracker_screen.dart';
 import '../tracker/pregnancy_tracker_screen.dart';
@@ -267,30 +264,8 @@ class _HomePregnantScreenState extends State<HomePregnantScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Greeting Section
-              Row(
-                children: [
-                  Text(
-                    AppState.instance.userName.isNotEmpty
-                        ? 'সুপ্রভাত, ${AppState.instance.userName}'
-                        : 'সুপ্রভাত',
-                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.onSurface,
-                        ),
-                  ),
-                  const SizedBox(width: 6),
-                  const Text('💛', style: TextStyle(fontSize: 22)),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'কেমন অনুভব করছেন আজ?',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.onSurfaceVariant,
-                    ),
-              ),
-              const SizedBox(height: 16),
+              // 1 & 2. Time-based dynamic greeting and Bangla date
+              const HomeGreetingHeader(emoji: '💛'),
 
               // ---------------- MAIN PREGNANCY PROGRESS CARD ----------------
               if (!isSetup)
@@ -430,23 +405,13 @@ class _HomePregnantScreenState extends State<HomePregnantScreen> {
                                 ],
                               ),
                               const SizedBox(height: 8),
-                              RichText(
-                                text: TextSpan(
-                                  style: const TextStyle(
-                                    fontFamily: 'Noto Sans Bengali',
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.onSurface,
-                                  ),
-                                  children: [
-                                    const TextSpan(text: 'আপনি এখন '),
-                                    TextSpan(
-                                      text:
-                                          '${toBanglaDigits(currentWeek)} সপ্তাহে',
-                                      style: const TextStyle(
-                                          color: AppColors.primary),
-                                    ),
-                                  ],
+                              Text(
+                                '${toBanglaDigits(currentWeek)}ম সপ্তাহ চলছে',
+                                style: const TextStyle(
+                                  fontFamily: 'Noto Sans Bengali',
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary,
                                 ),
                               ),
                               const SizedBox(height: 6),
@@ -547,7 +512,7 @@ class _HomePregnantScreenState extends State<HomePregnantScreen> {
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      '${toBanglaDigits(currentWeek)} সপ্তাহ',
+                                      '${toBanglaDigits(currentWeek)}ম সপ্তাহ',
                                       style: const TextStyle(
                                         fontFamily: 'Noto Sans Bengali',
                                         fontSize: 9.5,
@@ -622,57 +587,111 @@ class _HomePregnantScreenState extends State<HomePregnantScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
 
-                      // Action CTA: Opens EXACT current week guide!
-                      SizedBox(
-                        width: double.infinity,
-                        height: 46,
-                        child: ElevatedButton(
-                          onPressed: () => _openWeekGuide(currentWeek),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: AppColors.onPrimary,
-                            elevation: 2,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppRadius.md),
+              // 3. ONE CONCISE DEVELOPMENTAL INFORMATION SECTION
+              if (isSetup) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(14.0),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    boxShadow: AppShadows.subtleCard,
+                    border: Border.all(color: AppColors.borderCard),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.spa_rounded,
+                          color: AppColors.primary,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              AppState.instance.currentFetalStage.stageTitleBangla,
+                              style: const TextStyle(
+                                fontFamily: 'Noto Sans Bengali',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.onSurface,
+                              ),
                             ),
-                          ),
-                          child: Text(
-                            '${toBanglaDigits(currentWeek)}তম সপ্তাহ সম্পর্কে জানুন',
-                            style: const TextStyle(
-                              fontFamily: 'Noto Sans Bengali',
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
+                            const SizedBox(height: 3),
+                            Text(
+                              '${AppState.instance.currentFetalStage.descriptionBangla.split('।').first}।',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontFamily: 'Noto Sans Bengali',
+                                fontSize: 12,
+                                height: 1.35,
+                                color: AppColors.onSurfaceVariant,
+                              ),
                             ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      TextButton(
+                        onPressed: () => _openWeekGuide(currentWeek),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          backgroundColor:
+                              AppColors.primary.withValues(alpha: 0.08),
+                          foregroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
                           ),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'গাইড',
+                              style: TextStyle(
+                                fontFamily: 'Noto Sans Bengali',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Icon(Icons.chevron_right_rounded, size: 16),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-
-              if (isSetup) ...[
-                const SizedBox(height: 20),
-                // Dynamic Baby Development Visual Card
-                FetalDevelopmentVisual(
-                  weekNumber: currentWeek,
-                  onTap: () => _openWeekGuide(currentWeek),
-                ),
               ],
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-              // Noticeable Daily Care Message Card
+              // 4. DAILY MESSAGE SECTION (Card title: “আজকে আপনার জন্য বার্তা”)
               const DailyMessageCard(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
-              // ---------------- QUICK ACTIONS 4-ITEM GRID ----------------
+              // 5. COMPACT TRACKER SECTION (Quick Actions)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _buildQuickActionButton(
                     icon: Icons.water_drop_rounded,
-                    label: 'পিরিয়ড\nট্র্যাকার',
+                    label: 'পিরিয়ড\nট্র্যাকার',
                     iconColor: AppColors.primary,
                     onTap: () {
                       Navigator.push(
@@ -724,113 +743,6 @@ class _HomePregnantScreenState extends State<HomePregnantScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 28),
-
-              // Today's Tip ("আজকের MomBee")
-              Text(
-                'আজকের MomBee',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 18,
-                      color: AppColors.onSurface,
-                    ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF6D6),
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
-                  boxShadow: AppShadows.subtleCard,
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.wb_sunny_rounded,
-                        color: Color(0xFF745B00),
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${toBanglaDigits(currentWeek)}তম সপ্তাহের বিশেষ টিপস',
-                            style: const TextStyle(
-                              fontFamily: 'Noto Sans Bengali',
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.onSurface,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            weekInfo.healthAndCare,
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontFamily: 'Noto Sans Bengali',
-                              fontSize: 13,
-                              height: 1.4,
-                              color: AppColors.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 28),
-
-              // For You Articles Section
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'আপনার জন্য',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 18,
-                          color: AppColors.onSurface,
-                        ),
-                  ),
-                  TextButton(
-                    onPressed: () =>
-                        widget.onNavigateTab?.call(2), // Navigate to Learn Hub
-                    child: const Text(
-                      'সব দেখুন',
-                      style: TextStyle(
-                        fontFamily: 'Noto Sans Bengali',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              ...getArticlesForJourney(JourneyType.pregnant,
-                      pregnancyWeek: currentWeek)
-                  .take(2)
-                  .map(
-                    (art) => ArticleCard(
-                      article: art,
-                      onTap: () => showMomBeeArticleDetails(context, art),
-                    ),
-                  ),
               const SizedBox(height: 24),
             ],
           ),

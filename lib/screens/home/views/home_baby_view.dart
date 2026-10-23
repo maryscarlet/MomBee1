@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
-import '../../../models/article.dart';
-import '../../../models/journey_type.dart';
 import '../../../models/pregnancy_data.dart';
 import '../../../data/baby_stages_data.dart';
 import '../../../state/app_state.dart';
 import '../../../widgets/daily_message_card.dart';
-import '../../../widgets/article_widgets.dart';
+import '../widgets/home_greeting_header.dart';
+import '../../tracker/period_tracker_screen.dart';
+import '../../tracker/pregnancy_tracker_screen.dart';
 import '../../tracker/baby_development_screen.dart';
 import '../../tracker/vaccination_screen.dart';
-import '../../tracker/appointments_screen.dart';
 
 class HomeBabyView extends StatelessWidget {
   final Function(int)? onNavigateTab;
@@ -219,33 +218,8 @@ class HomeBabyView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Greeting Section
-              Row(
-                children: [
-                  Text(
-                    AppState.instance.userName.isNotEmpty
-                        ? 'সুপ্রভাত, ${AppState.instance.userName}'
-                        : 'সুপ্রভাত',
-                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.onSurface,
-                        ),
-                  ),
-                  const SizedBox(width: 6),
-                  const Text('👶', style: TextStyle(fontSize: 22)),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'আপনার সোনামণির হাসিমুখেই প্রতিদিনের আনন্দ',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.onSurfaceVariant,
-                    ),
-              ),
-              const SizedBox(height: 16),
-
-              // Dynamic Daily Message
-              const DailyMessageCard(),
+              // 1 & 2. Dynamic time-based greeting & Bangla date
+              const HomeGreetingHeader(emoji: '👶'),
 
               // 1. HERO BABY DASHBOARD CARD
               if (!isSetup)
@@ -407,6 +381,15 @@ class HomeBabyView extends StatelessWidget {
                                   color: AppColors.primary,
                                 ),
                               ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${stage.ageRange} এর বিকাশের সুন্দর সময় পার করছে আপনার সোনামণি।',
+                                style: const TextStyle(
+                                  fontFamily: 'Noto Sans Bengali',
+                                  fontSize: 12,
+                                  color: AppColors.onSurfaceVariant,
+                                ),
+                              ),
                             ],
                           ),
                           GestureDetector(
@@ -427,48 +410,138 @@ class HomeBabyView extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 44,
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(AppRadius.md),
-                            ),
-                          ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const BabyDevelopmentScreen(),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.auto_stories_rounded, size: 18),
-                          label: Text(
-                            '${stage.ageRange} এর বিকাশ গাইড দেখুন',
-                            style: const TextStyle(
-                              fontFamily: 'Noto Sans Bengali',
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),
-              const SizedBox(height: 24),
 
-              // 2. QUICK ACTIONS FOR BABY CARE
+              // 3. ONE CONCISE DEVELOPMENTAL INFORMATION SECTION
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(14.0),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  boxShadow: AppShadows.subtleCard,
+                  border: Border.all(color: AppColors.borderCard),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFECB17).withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.child_friendly_rounded,
+                        color: Color(0xFF745B00),
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${stage.ageRange} বিকাশ ও যত্ন',
+                            style: const TextStyle(
+                              fontFamily: 'Noto Sans Bengali',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            stage.careTips.first,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontFamily: 'Noto Sans Bengali',
+                              fontSize: 12,
+                              height: 1.35,
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const BabyDevelopmentScreen(),
+                          ),
+                        );
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        backgroundColor:
+                            AppColors.primary.withValues(alpha: 0.08),
+                        foregroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'গাইড',
+                            style: TextStyle(
+                              fontFamily: 'Noto Sans Bengali',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Icon(Icons.chevron_right_rounded, size: 16),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 4. DAILY MESSAGE SECTION (Card title: “আজকে আপনার জন্য বার্তা”)
+              const DailyMessageCard(),
+              const SizedBox(height: 16),
+
+              // 5. COMPACT TRACKER SECTION (Quick Actions)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  _buildQuickAction(
+                    icon: Icons.water_drop_rounded,
+                    label: 'পিরিয়ড\nট্র্যাকার',
+                    color: AppColors.primary,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const PeriodTrackerScreen()),
+                      );
+                    },
+                  ),
+                  _buildQuickAction(
+                    icon: Icons.pregnant_woman_rounded,
+                    label: 'প্রেগন্যান্সি\nট্র্যাকার',
+                    color: AppColors.primary,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) =>
+                                const PregnancyTrackerScreen()),
+                      );
+                    },
+                  ),
                   _buildQuickAction(
                     icon: Icons.child_care_rounded,
                     label: 'শিশুর\nবিকাশ',
@@ -484,8 +557,8 @@ class HomeBabyView extends StatelessWidget {
                   ),
                   _buildQuickAction(
                     icon: Icons.vaccines_rounded,
-                    label: 'টিকা\nইপিআই',
-                    color: AppColors.primary,
+                    label: 'টিকা ও\nইপিআই',
+                    color: AppColors.tertiary,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -494,156 +567,8 @@ class HomeBabyView extends StatelessWidget {
                       );
                     },
                   ),
-                  _buildQuickAction(
-                    icon: Icons.restaurant_rounded,
-                    label: 'খাবার ও\nপুষ্টি',
-                    color: const Color(0xFF2E7D32),
-                    onTap: () => onNavigateTab?.call(2),
-                  ),
-                  _buildQuickAction(
-                    icon: Icons.local_hospital_rounded,
-                    label: 'ডাক্তারের\nপরামর্শ',
-                    color: const Color(0xFF0288D1),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const AppointmentsScreen()),
-                      );
-                    },
-                  ),
                 ],
               ),
-              const SizedBox(height: 28),
-
-              // 3. TODAY'S BABY CARE GUIDELINES
-              Text(
-                '${stage.ageRange} এর প্রধান যত্ন',
-                style: const TextStyle(
-                  fontFamily: 'Noto Sans Bengali',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              _buildGuidelineCard(
-                icon: Icons.restaurant_rounded,
-                iconColor: const Color(0xFFE65100),
-                title: 'খাওয়ানোর নিয়ম',
-                description: stage.feedingGuide,
-              ),
-              const SizedBox(height: 10),
-
-              _buildGuidelineCard(
-                icon: Icons.bedtime_rounded,
-                iconColor: const Color(0xFF0288D1),
-                title: 'ঘুমের নিয়ম',
-                description: stage.sleepGuide,
-              ),
-              const SizedBox(height: 10),
-
-              _buildGuidelineCard(
-                icon: Icons.emoji_events_rounded,
-                iconColor: const Color(0xFF745B00),
-                title: 'প্রধান মাইলফলক',
-                description: stage.milestones.join(' • '),
-              ),
-              const SizedBox(height: 28),
-
-              // 4. TODAY'S SAFETY & MOTHER/FATHER TIPS
-              const Text(
-                'নিরাপত্তা ও পারিবারিক যত্ন',
-                style: TextStyle(
-                  fontFamily: 'Noto Sans Bengali',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(16.0),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF6D6),
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
-                  boxShadow: AppShadows.subtleCard,
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.security_rounded,
-                        color: Color(0xFF745B00), size: 28),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'ঘরের সুরক্ষা ও শিশুর যত্ন',
-                            style: TextStyle(
-                              fontFamily: 'Noto Sans Bengali',
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF745B00),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            stage.careTips.first,
-                            style: const TextStyle(
-                              fontFamily: 'Noto Sans Bengali',
-                              fontSize: 13,
-                              height: 1.4,
-                              color: AppColors.onSurface,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 28),
-
-              // 5. BABY ARTICLES
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'শিশুর যত্নের বিশেষ গাইড',
-                    style: TextStyle(
-                      fontFamily: 'Noto Sans Bengali',
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.onSurface,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => onNavigateTab?.call(2),
-                    child: const Text(
-                      'সব দেখুন',
-                      style: TextStyle(
-                        fontFamily: 'Noto Sans Bengali',
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              ...getArticlesForJourney(JourneyType.baby,
-                      babyStageId: stage.id)
-                  .take(2)
-                  .map(
-                    (art) => ArticleCard(
-                      article: art,
-                      onTap: () => showMomBeeArticleDetails(context, art),
-                    ),
-                  ),
               const SizedBox(height: 24),
             ],
           ),
@@ -689,63 +614,6 @@ class HomeBabyView extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildGuidelineCard({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String description,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: AppShadows.subtleCard,
-        border: Border.all(color: AppColors.borderCard),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: iconColor, size: 22),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontFamily: 'Noto Sans Bengali',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: const TextStyle(
-                    fontFamily: 'Noto Sans Bengali',
-                    fontSize: 12.5,
-                    height: 1.4,
-                    color: AppColors.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

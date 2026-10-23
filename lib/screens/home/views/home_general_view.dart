@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
-import '../../../models/article.dart';
-import '../../../models/journey_type.dart';
-import '../../../state/app_state.dart';
 import '../../../widgets/daily_message_card.dart';
-import '../../../widgets/article_widgets.dart';
-import '../../tracker/vaccination_screen.dart';
+import '../widgets/home_greeting_header.dart';
 import '../../tracker/period_tracker_screen.dart';
+import '../../tracker/pregnancy_tracker_screen.dart';
 import '../../tracker/baby_development_screen.dart';
-import '../../pregnancy/pregnancy_week_guide_screen.dart';
+import '../../tracker/vaccination_screen.dart';
 
 class HomeGeneralView extends StatelessWidget {
   final Function(int)? onNavigateTab;
@@ -21,35 +18,10 @@ class HomeGeneralView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Greeting Section
-          Row(
-            children: [
-              Text(
-                AppState.instance.userName.isNotEmpty
-                    ? 'সুপ্রভাত, ${AppState.instance.userName}'
-                    : 'সুপ্রভাত',
-                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.onSurface,
-                    ),
-              ),
-              const SizedBox(width: 6),
-              const Text('✨', style: TextStyle(fontSize: 22)),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'অভিজ্ঞ ডাক্তারদের নির্ভরযোগ্য মাতৃত্ব ও প্যারেন্টিং তথ্যভাণ্ডার',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.onSurfaceVariant,
-                ),
-          ),
-          const SizedBox(height: 16),
+          // 1. Time-based dynamic greeting & Bangla date
+          const HomeGreetingHeader(emoji: '✨'),
 
-          // Dynamic Daily Message
-          const DailyMessageCard(),
-
-          // 1. HERO LEARNING EXPLORE CARD
+          // 2. ONE COMPACT JOURNEY PROGRESS CARD (General Summary)
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -65,7 +37,7 @@ class HomeGeneralView extends StatelessWidget {
               border: Border.all(
                   color: AppColors.primary.withValues(alpha: 0.2)),
             ),
-            padding: const EdgeInsets.all(20.0),
+            padding: const EdgeInsets.all(18.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -80,7 +52,7 @@ class HomeGeneralView extends StatelessWidget {
                         borderRadius: BorderRadius.circular(AppRadius.full),
                       ),
                       child: const Text(
-                        'তথ্য ও শিক্ষা ভাণ্ডার',
+                        'সাধারণ স্বাস্থ্য ও যত্ন',
                         style: TextStyle(
                           fontFamily: 'Noto Sans Bengali',
                           fontSize: 12,
@@ -90,302 +62,234 @@ class HomeGeneralView extends StatelessWidget {
                       ),
                     ),
                     Container(
-                      width: 44,
-                      height: 44,
+                      width: 42,
+                      height: 42,
                       decoration: const BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
-                        Icons.auto_stories_rounded,
+                        Icons.spa_rounded,
                         color: AppColors.primary,
-                        size: 24,
+                        size: 22,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 const Text(
-                  'প্রতিদিনের প্রয়োজনীয় স্বাস্থ্য তথ্য',
+                  'সুস্থ মা, সুন্দর ভবিষ্যৎ',
                   style: TextStyle(
                     fontFamily: 'Noto Sans Bengali',
-                    fontSize: 19,
+                    fontSize: 18,
                     fontWeight: FontWeight.w800,
                     color: AppColors.onSurface,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 const Text(
-                  'গর্ভাবস্থা, পুষ্টি, নবজাতকের যত্ন ও প্যারেন্টিং বিষয়ক ৩০০+ বিশেষজ্ঞ আর্টিকেল ও ভিডিও গাইড।',
+                  'নারী ও শিশুর স্বাস্থ্য, পুষ্টি, প্রজনন সুস্থতা ও প্যারেন্টিং গাইডলাইনে মমবি রয়েছে আপনার সাথে।',
                   style: TextStyle(
                     fontFamily: 'Noto Sans Bengali',
-                    fontSize: 13,
+                    fontSize: 12.5,
                     color: AppColors.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 44,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                    ),
-                    onPressed: () => onNavigateTab?.call(2), // Learn tab
-                    icon: const Icon(Icons.explore_rounded, size: 18),
-                    label: const Text(
-                      'সকল আর্টিকেল ও বিষয় অনুসন্ধান করুন',
-                      style: TextStyle(
-                        fontFamily: 'Noto Sans Bengali',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                    height: 1.35,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
-          // 2. EXPLORE TOPICS GRID
-          const Text(
-            'বিষয়ভিত্তিক জ্ঞান',
-            style: TextStyle(
-              fontFamily: 'Noto Sans Bengali',
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppColors.onSurface,
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          Row(
-            children: [
-              Expanded(
-                child: _buildTopicTile(
-                  icon: Icons.favorite_rounded,
-                  color: const Color(0xFFE91E63),
-                  title: 'গর্ভধারণের প্রস্তুতি',
-                  subtitle: 'ওভুলেশন ও পুষ্টি',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const PeriodTrackerScreen()),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildTopicTile(
-                  icon: Icons.pregnant_woman_rounded,
-                  color: AppColors.primary,
-                  title: '১-৪০ সপ্তাহ গাইড',
-                  subtitle: 'সাপ্তাহিক বিকাশ',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) =>
-                              const PregnancyWeekGuideScreen(initialWeek: 1)),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          Row(
-            children: [
-              Expanded(
-                child: _buildTopicTile(
-                  icon: Icons.child_care_rounded,
-                  color: const Color(0xFF745B00),
-                  title: 'শিশুর বিকাশ',
-                  subtitle: 'মাইলফলক ও যত্ন',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) =>
-                              const BabyDevelopmentScreen()),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildTopicTile(
-                  icon: Icons.vaccines_rounded,
-                  color: const Color(0xFF0288D1),
-                  title: 'টিকা ও প্রতিরোধ',
-                  subtitle: 'ইপিআই শিডিউল',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const VaccinationScreen()),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 28),
-
-          // 3. TODAY'S GENERAL HEALTH TIP
-          const Text(
-            'আজকের সচেতনতা টিপস',
-            style: TextStyle(
-              fontFamily: 'Noto Sans Bengali',
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppColors.onSurface,
-            ),
-          ),
-          const SizedBox(height: 12),
+          // 3. ONE CONCISE DEVELOPMENTAL / HEALTH INFORMATION SECTION
           Container(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(14.0),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF6D6),
+              color: AppColors.surfaceContainerLowest,
               borderRadius: BorderRadius.circular(AppRadius.lg),
               boxShadow: AppShadows.subtleCard,
+              border: Border.all(color: AppColors.borderCard),
             ),
-            child: const Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Icon(Icons.lightbulb_rounded,
-                    color: Color(0xFF745B00), size: 28),
-                SizedBox(width: 14),
-                Expanded(
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0288D1).withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.auto_stories_rounded,
+                    color: Color(0xFF0288D1),
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'পর্যাপ্ত পানি ও সুষম খাদ্যাভ্যাস',
+                        'দৈনিক স্বাস্থ্য শিক্ষা ও পুষ্টি',
                         style: TextStyle(
                           fontFamily: 'Noto Sans Bengali',
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF745B00),
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'মা ও শিশুর সুস্থতায় দৈনিক অন্তত ৮-১০ গ্লাস বিশুদ্ধ পানি পান করা এবং মৌসুমি তাজা ফলমূল গ্রহণ করা অত্যন্ত জরুরি।',
-                        style: TextStyle(
-                          fontFamily: 'Noto Sans Bengali',
-                          fontSize: 13,
-                          height: 1.4,
                           color: AppColors.onSurface,
                         ),
                       ),
+                      SizedBox(height: 3),
+                      Text(
+                        'প্রতিদিনের সঠিক হাইড্রেশন এবং সময়মতো টিকার শিডিউল বজায় রাখা অত্যন্ত গুরুত্বপূর্ণ।',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Noto Sans Bengali',
+                          fontSize: 12,
+                          height: 1.35,
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: () => onNavigateTab?.call(2), // Learn tab
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 6),
+                    backgroundColor:
+                        AppColors.primary.withValues(alpha: 0.08),
+                    foregroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'আর্টিকেল',
+                        style: TextStyle(
+                          fontFamily: 'Noto Sans Bengali',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Icon(Icons.chevron_right_rounded, size: 16),
                     ],
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 16),
 
-          // 4. POPULAR ARTICLES
+          // 4. DAILY MESSAGE SECTION (Card title: “আজকে আপনার জন্য বার্তা”)
+          const DailyMessageCard(),
+          const SizedBox(height: 16),
+
+          // 5. COMPACT TRACKER SECTION (Quick Actions)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'জনপ্রিয় আর্টিকেল',
-                style: TextStyle(
-                  fontFamily: 'Noto Sans Bengali',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
-                ),
+              _buildQuickAction(
+                icon: Icons.water_drop_rounded,
+                label: 'পিরিয়ড\nট্র্যাকার',
+                color: AppColors.primary,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const PeriodTrackerScreen()),
+                  );
+                },
               ),
-              TextButton(
-                onPressed: () => onNavigateTab?.call(2),
-                child: const Text(
-                  'সব দেখুন',
-                  style: TextStyle(
-                    fontFamily: 'Noto Sans Bengali',
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+              _buildQuickAction(
+                icon: Icons.pregnant_woman_rounded,
+                label: 'প্রেগন্যান্সি\nট্র্যাকার',
+                color: AppColors.primary,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            const PregnancyTrackerScreen()),
+                  );
+                },
+              ),
+              _buildQuickAction(
+                icon: Icons.child_care_rounded,
+                label: 'শিশুর\nবিকাশ',
+                color: AppColors.secondary,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            const BabyDevelopmentScreen()),
+                  );
+                },
+              ),
+              _buildQuickAction(
+                icon: Icons.vaccines_rounded,
+                label: 'টিকা ও\nইপিআই',
+                color: AppColors.tertiary,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const VaccinationScreen()),
+                  );
+                },
               ),
             ],
           ),
-          const SizedBox(height: 8),
-
-          ...getArticlesForJourney(JourneyType.general).take(3).map(
-                (art) => ArticleCard(
-                  article: art,
-                  onTap: () => showMomBeeArticleDetails(context, art),
-                ),
-              ),
           const SizedBox(height: 24),
         ],
       ),
     );
   }
 
-  Widget _buildTopicTile({
+  Widget _buildQuickAction({
     required IconData icon,
+    required String label,
     required Color color,
-    required String title,
-    required String subtitle,
     required VoidCallback onTap,
   }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(color: AppColors.borderCard),
-            boxShadow: AppShadows.subtleCard,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: color, size: 22),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: SizedBox(
+        width: 76,
+        child: Column(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: AppShadows.subtleCard,
               ),
-              const SizedBox(height: 10),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontFamily: 'Noto Sans Bengali',
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
+              child: Icon(icon, color: color, size: 26),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontFamily: 'Noto Sans Bengali',
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.onSurface,
+                height: 1.2,
               ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  fontFamily: 'Noto Sans Bengali',
-                  fontSize: 11,
-                  color: AppColors.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -23,6 +23,12 @@ class LocalStorageService {
   static const String _kNotifDailyCareKey = 'mombee_notif_daily_care';
   static const String _kNotifAppointmentsKey = 'mombee_notif_appointments';
   static const String _kNotifVaccinesKey = 'mombee_notif_vaccines';
+  static const String _kNotifPeriodKey = 'mombee_notif_period';
+  static const String _kNotifOvulationKey = 'mombee_notif_ovulation';
+  static const String _kPeriodReminderHourKey = 'mombee_period_reminder_hour';
+  static const String _kPeriodReminderMinuteKey = 'mombee_period_reminder_minute';
+  static const String _kOvulationReminderHourKey = 'mombee_ovulation_reminder_hour';
+  static const String _kOvulationReminderMinuteKey = 'mombee_ovulation_reminder_minute';
   static const String _kWaterReminderIntervalKey =
       'mombee_water_reminder_interval';
   static const String _kWaterReminderStartHourKey =
@@ -230,6 +236,58 @@ class LocalStorageService {
     return prefs.getBool(_kNotifVaccinesKey) ?? true;
   }
 
+  static Future<void> savePeriodNotifEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kNotifPeriodKey, enabled);
+  }
+
+  static Future<bool> getPeriodNotifEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_kNotifPeriodKey) ?? true;
+  }
+
+  static Future<void> saveOvulationNotifEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kNotifOvulationKey, enabled);
+  }
+
+  static Future<bool> getOvulationNotifEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_kNotifOvulationKey) ?? true;
+  }
+
+  static Future<void> savePeriodReminderTime(int hour, int minute) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_kPeriodReminderHourKey, hour);
+    await prefs.setInt(_kPeriodReminderMinuteKey, minute);
+  }
+
+  static Future<int> getPeriodReminderHour() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_kPeriodReminderHourKey) ?? 9;
+  }
+
+  static Future<int> getPeriodReminderMinute() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_kPeriodReminderMinuteKey) ?? 0;
+  }
+
+  static Future<void> saveOvulationReminderTime(int hour, int minute) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_kOvulationReminderHourKey, hour);
+    await prefs.setInt(_kOvulationReminderMinuteKey, minute);
+  }
+
+  static Future<int> getOvulationReminderHour() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_kOvulationReminderHourKey) ?? 9;
+  }
+
+  static Future<int> getOvulationReminderMinute() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_kOvulationReminderMinuteKey) ?? 0;
+  }
+
   // ---------------- WATER REMINDER SCHEDULE ----------------
   static Future<void> saveWaterReminderInterval(int hours) async {
     final prefs = await SharedPreferences.getInstance();
@@ -431,6 +489,12 @@ class LocalStorageService {
     await prefs.remove(_kNotifDailyCareKey);
     await prefs.remove(_kNotifAppointmentsKey);
     await prefs.remove(_kNotifVaccinesKey);
+    await prefs.remove(_kNotifPeriodKey);
+    await prefs.remove(_kNotifOvulationKey);
+    await prefs.remove(_kPeriodReminderHourKey);
+    await prefs.remove(_kPeriodReminderMinuteKey);
+    await prefs.remove(_kOvulationReminderHourKey);
+    await prefs.remove(_kOvulationReminderMinuteKey);
     await prefs.remove(_kWaterReminderIntervalKey);
     await prefs.remove(_kWaterReminderStartHourKey);
     await prefs.remove(_kWaterReminderEndHourKey);

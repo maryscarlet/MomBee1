@@ -9,6 +9,7 @@ import 'screens/journey/journey_selection_screen.dart';
 import 'screens/main_navigation_shell.dart';
 
 import 'services/notification_service.dart';
+import 'services/notification_navigation_handler.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +33,7 @@ class MomBeeApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: rootNavigatorKey,
       title: 'MomBee - Parenting Companion',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
@@ -41,7 +43,7 @@ class MomBeeApp extends StatelessWidget {
         '/user-setup': (context) => const UserNameSetupScreen(),
         '/onboarding': (context) => const OnboardingScreen(),
         '/journey-selection': (context) => const JourneySelectionScreen(),
-        '/main': (context) => const MainNavigationShell(),
+        '/main': (context) => MainNavigationShell(key: MainNavigationShell.shellKey),
       },
     );
   }

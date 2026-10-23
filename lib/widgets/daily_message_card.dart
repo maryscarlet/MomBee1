@@ -6,45 +6,11 @@ import '../theme/app_theme.dart';
 class DailyMessageCard extends StatefulWidget {
   const DailyMessageCard({super.key});
 
-  @override
-  State<DailyMessageCard> createState() => _DailyMessageCardState();
-}
-
-class _DailyMessageCardState extends State<DailyMessageCard>
-    with SingleTickerProviderStateMixin {
-  bool _isDismissingLocally = false;
-
-  void _handleMarkAsRead(BuildContext context) async {
-    setState(() => _isDismissingLocally = true);
-    await Future.delayed(const Duration(milliseconds: 320));
-    await AppState.instance.dismissDailyMessage();
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
-            children: [
-              Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
-              SizedBox(width: 8),
-              Text(
-                'আজকের বার্তা পড়া হয়েছে!',
-                style: TextStyle(
-                  fontFamily: 'Noto Sans Bengali',
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: AppColors.primary,
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
-  }
-
-  void _showDetailModal(BuildContext context, DailyMessage msg) {
+  /// Displays the full daily care message in a modal bottom sheet.
+  /// Can be triggered from the in-app card, notification tap, or notification center.
+  static void showDetailModal(BuildContext context, [DailyMessage? message]) {
+    final msg =
+        message ?? DailyMessageService.getDailyMessageForCurrentProfile();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -265,9 +231,34 @@ class _DailyMessageCardState extends State<DailyMessageCard>
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton.icon(
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.pop(context);
-                      _handleMarkAsRead(context);
+                      await AppState.instance.dismissDailyMessage();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Row(
+                              children: [
+                                Icon(Icons.check_circle_rounded,
+                                    color: Colors.white, size: 18),
+                                SizedBox(width: 8),
+                                Text(
+                                  'আজকের বার্তা পড়া হয়েছে!',
+                                  style: TextStyle(
+                                    fontFamily: 'Noto Sans Bengali',
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            backgroundColor: AppColors.primary,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
@@ -295,6 +286,47 @@ class _DailyMessageCardState extends State<DailyMessageCard>
       ),
     );
   }
+
+  @override
+  State<DailyMessageCard> createState() => _DailyMessageCardState();
+}
+
+class _DailyMessageCardState extends State<DailyMessageCard>
+    with SingleTickerProviderStateMixin {
+  bool _isDismissingLocally = false;
+
+  void _handleMarkAsRead(BuildContext context) async {
+    setState(() => _isDismissingLocally = true);
+    await Future.delayed(const Duration(milliseconds: 320));
+    await AppState.instance.dismissDailyMessage();
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+              SizedBox(width: 8),
+              Text(
+                'আজকের বার্তা পড়া হয়েছে!',
+                style: TextStyle(
+                  fontFamily: 'Noto Sans Bengali',
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.primary,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  void _showDetailModal(BuildContext context, DailyMessage msg) =>
+      DailyMessageCard.showDetailModal(context, msg);
 
   @override
   Widget build(BuildContext context) {
@@ -360,12 +392,12 @@ class _DailyMessageCardState extends State<DailyMessageCard>
                                   ),
                                   Expanded(
                                     child: Text(
-                                      'আজকের বার্তা • ${msg.greeting}',
+                                      'আজকে আপনার জন্য বার্তা',
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(
                                         fontFamily: 'Noto Sans Bengali',
-                                        fontSize: 13,
+                                        fontSize: 13.5,
                                         fontWeight: FontWeight.w700,
                                         color: AppColors.primary,
                                       ),

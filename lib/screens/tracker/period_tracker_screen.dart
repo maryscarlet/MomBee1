@@ -287,6 +287,76 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> {
           body: ListView(
             padding: const EdgeInsets.all(20.0),
             children: [
+              // 0. UNCONFIGURED SETUP PROMPT
+              if (!periodData.isSetup)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF6D6),
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    border: Border.all(color: const Color(0xFFFECB17)),
+                    boxShadow: AppShadows.subtleCard,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.info_outline_rounded,
+                              color: Color(0xFF745B00), size: 20),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'পিরিয়ড ও সাইকেল সেটআপ করুন',
+                              style: TextStyle(
+                                fontFamily: 'Noto Sans Bengali',
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF584400),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'আপনার পিরিয়ড ও সাইকেলের তথ্য এখনো সেট করা হয়নি। সঠিক প্রেডিকশন এবং সময়মতো রিমাইন্ডার পেতে আপনার সর্বশেষ পিরিয়ডের শুরুর দিন ও সাইকেল সেট করুন।',
+                        style: TextStyle(
+                          fontFamily: 'Noto Sans Bengali',
+                          fontSize: 12,
+                          color: AppColors.onSurface,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 38,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
+                            ),
+                          ),
+                          onPressed: _showEditCycleDialog,
+                          icon: const Icon(Icons.edit_calendar_rounded, size: 16),
+                          label: const Text(
+                            'সাইকেলের তথ্য সেট করুন',
+                            style: TextStyle(
+                              fontFamily: 'Noto Sans Bengali',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
               // 1. CYCLE HERO BANNER
               Container(
                 padding: const EdgeInsets.all(20),

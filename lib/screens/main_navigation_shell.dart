@@ -8,28 +8,45 @@ import 'tracker/tracker_hub_screen.dart';
 import 'learn/learn_hub_screen.dart';
 import 'video/video_library_screen.dart';
 import 'package:mombee_app/screens/profile/profile_screen.dart';
+import '../services/notification_navigation_handler.dart';
 
 class MainNavigationShell extends StatefulWidget {
   final int initialIndex;
   const MainNavigationShell({super.key, this.initialIndex = 0});
 
+  static final GlobalKey<MainNavigationShellState> shellKey =
+      GlobalKey<MainNavigationShellState>();
+
+  static void switchToTab(int index) {
+    shellKey.currentState?.setTab(index);
+  }
+
   @override
-  State<MainNavigationShell> createState() => _MainNavigationShellState();
+  State<MainNavigationShell> createState() => MainNavigationShellState();
 }
 
-class _MainNavigationShellState extends State<MainNavigationShell> {
+class MainNavigationShellState extends State<MainNavigationShell> {
   late int _currentIndex;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NotificationNavigationHandler.instance.onAppReady();
+    });
+  }
+
+  void setTab(int index) {
+    if (mounted) {
+      setState(() {
+        _currentIndex = index;
+      });
+    }
   }
 
   void _onTabSelected(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
+    setTab(index);
   }
 
   @override

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../../theme/app_theme.dart';
 import '../../models/journey_type.dart';
 import '../../models/pregnancy_data.dart';
@@ -15,6 +16,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  String _testTargetType = 'test';
   void _showNotificationPreferencesModal() {
     showModalBottomSheet(
       context: context,
@@ -440,6 +442,456 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           await state.setNotifVaccines(val);
                           await NotificationService.instance.syncAllReminders();
                         },
+                      ),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        activeTrackColor: AppColors.primary,
+                        secondary: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.water_drop_rounded,
+                              color: AppColors.primary, size: 18),
+                        ),
+                        title: Text(
+                          state.isEnglish
+                              ? 'Period Start Reminder'
+                              : 'পিরিয়ড রিমাইন্ডার',
+                          style: const TextStyle(
+                            fontFamily: 'Noto Sans Bengali',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          state.selectedJourney == JourneyType.pregnant
+                              ? (state.isEnglish
+                                  ? 'Paused during pregnancy journey'
+                                  : 'প্রেগন্যান্সি চলাকালে সাময়িকভাবে স্থগিত')
+                              : (state.isEnglish
+                                  ? 'Alert at ${state.periodReminderTime.format(context)}'
+                                  : 'সম্ভাব্য পিরিয়ডের শুরুতে ${state.periodReminderTime.format(context)}-এ সতর্কতা'),
+                          style: TextStyle(
+                            fontFamily: 'Noto Sans Bengali',
+                            fontSize: 11.5,
+                            color: state.selectedJourney == JourneyType.pregnant
+                                ? AppColors.primary
+                                : AppColors.onSurfaceVariant,
+                            fontStyle: state.selectedJourney == JourneyType.pregnant
+                                ? FontStyle.italic
+                                : FontStyle.normal,
+                          ),
+                        ),
+                        value: state.notifPeriod,
+                        onChanged: (val) async {
+                          await state.setNotifPeriod(val);
+                        },
+                      ),
+                      if (state.notifPeriod &&
+                          state.selectedJourney != JourneyType.pregnant) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(
+                              left: 48, bottom: 8, right: 8),
+                          child: Row(
+                            children: [
+                              Text(
+                                state.isEnglish
+                                    ? 'Reminder Time:'
+                                    : 'রিমাইন্ডারের সময়:',
+                                style: const TextStyle(
+                                  fontFamily: 'Noto Sans Bengali',
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              OutlinedButton.icon(
+                                onPressed: () async {
+                                  final picked = await showTimePicker(
+                                    context: context,
+                                    initialTime: state.periodReminderTime,
+                                  );
+                                  if (picked != null) {
+                                    await state.setPeriodReminderTime(
+                                        picked.hour, picked.minute);
+                                  }
+                                },
+                                icon: const Icon(Icons.access_time_rounded,
+                                    size: 15),
+                                label: Text(
+                                  state.periodReminderTime.format(context),
+                                  style: const TextStyle(
+                                    fontFamily: 'Noto Sans Bengali',
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        activeTrackColor: const Color(0xFFE91E63),
+                        secondary: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color:
+                                const Color(0xFFE91E63).withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.favorite_rounded,
+                              color: Color(0xFFE91E63), size: 18),
+                        ),
+                        title: Text(
+                          state.isEnglish
+                              ? 'Ovulation & Fertile Window'
+                              : 'ওভুলেশন রিমাইন্ডার',
+                          style: const TextStyle(
+                            fontFamily: 'Noto Sans Bengali',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          state.selectedJourney == JourneyType.pregnant
+                              ? (state.isEnglish
+                                  ? 'Paused during pregnancy journey'
+                                  : 'প্রেগন্যান্সি চলাকালে সাময়িকভাবে স্থগিত')
+                              : (state.isEnglish
+                                  ? 'Alert at ${state.ovulationReminderTime.format(context)}'
+                                  : 'সম্ভাব্য উর্বর সময় ও ওভুলেশনে ${state.ovulationReminderTime.format(context)}-এ সতর্কতা'),
+                          style: TextStyle(
+                            fontFamily: 'Noto Sans Bengali',
+                            fontSize: 11.5,
+                            color: state.selectedJourney == JourneyType.pregnant
+                                ? AppColors.primary
+                                : AppColors.onSurfaceVariant,
+                            fontStyle: state.selectedJourney == JourneyType.pregnant
+                                ? FontStyle.italic
+                                : FontStyle.normal,
+                          ),
+                        ),
+                        value: state.notifOvulation,
+                        onChanged: (val) async {
+                          await state.setNotifOvulation(val);
+                        },
+                      ),
+                      if (state.notifOvulation &&
+                          state.selectedJourney != JourneyType.pregnant) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(
+                              left: 48, bottom: 8, right: 8),
+                          child: Row(
+                            children: [
+                              Text(
+                                state.isEnglish
+                                    ? 'Reminder Time:'
+                                    : 'রিমাইন্ডারের সময়:',
+                                style: const TextStyle(
+                                  fontFamily: 'Noto Sans Bengali',
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              OutlinedButton.icon(
+                                onPressed: () async {
+                                  final picked = await showTimePicker(
+                                    context: context,
+                                    initialTime: state.ovulationReminderTime,
+                                  );
+                                  if (picked != null) {
+                                    await state.setOvulationReminderTime(
+                                        picked.hour, picked.minute);
+                                  }
+                                },
+                                icon: const Icon(Icons.access_time_rounded,
+                                    size: 15),
+                                label: Text(
+                                  state.ovulationReminderTime.format(context),
+                                  style: const TextStyle(
+                                    fontFamily: 'Noto Sans Bengali',
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                    if (kDebugMode) ...[
+                      const SizedBox(height: 14),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8F5E9),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          border: Border.all(color: const Color(0xFF81C784)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.bug_report_rounded,
+                                    size: 18, color: Color(0xFF2E7D32)),
+                                const SizedBox(width: 6),
+                                Text(
+                                  state.isEnglish
+                                      ? 'Device Verification (Debug Test)'
+                                      : 'ডিভাইস ভেরিফিকেশন (টেস্ট মোড)',
+                                  style: const TextStyle(
+                                    fontFamily: 'Noto Sans Bengali',
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF2E7D32),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              state.isEnglish
+                                  ? 'Test real Android notification delivery (status bar icon, shade & banner).'
+                                  : 'বাস্তব ফোনে নোটিফিকেশন ডেলিভারি (স্ট্যাটাস বার, নোটিফিকেশন শেড ও ব্যানার) পরীক্ষা করুন।',
+                              style: const TextStyle(
+                                fontFamily: 'Noto Sans Bengali',
+                                fontSize: 11,
+                                color: AppColors.onSurfaceVariant,
+                              ),
+                            ),
+                            StatefulBuilder(
+                              builder: (ctx, setDebugState) => Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    state.isEnglish
+                                        ? 'Select Destination Page to Test:'
+                                        : 'টেস্ট নোটিফিকেশনের গন্তব্য নির্বাচন করুন:',
+                                    style: const TextStyle(
+                                      fontFamily: 'Noto Sans Bengali',
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF1B5E20),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: Row(
+                                      children: [
+                                        ChoiceChip(
+                                          label: const Text('সাধারণ/সেন্টার',
+                                              style: TextStyle(
+                                                  fontFamily: 'Noto Sans Bengali',
+                                                  fontSize: 11)),
+                                          selected: _testTargetType == 'test',
+                                          onSelected: (_) => setDebugState(
+                                              () => _testTargetType = 'test'),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        ChoiceChip(
+                                          label: const Text('পানি পান 💧',
+                                              style: TextStyle(
+                                                  fontFamily: 'Noto Sans Bengali',
+                                                  fontSize: 11)),
+                                          selected: _testTargetType == 'water',
+                                          onSelected: (_) => setDebugState(
+                                              () => _testTargetType = 'water'),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        ChoiceChip(
+                                          label: const Text('যত্ন বার্তা 🌸',
+                                              style: TextStyle(
+                                                  fontFamily: 'Noto Sans Bengali',
+                                                  fontSize: 11)),
+                                          selected:
+                                              _testTargetType == 'daily_care',
+                                          onSelected: (_) => setDebugState(
+                                              () => _testTargetType = 'daily_care'),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        ChoiceChip(
+                                          label: const Text('অ্যাপয়েন্টমেন্ট 🩺',
+                                              style: TextStyle(
+                                                  fontFamily: 'Noto Sans Bengali',
+                                                  fontSize: 11)),
+                                          selected:
+                                              _testTargetType == 'appointment',
+                                          onSelected: (_) => setDebugState(
+                                              () => _testTargetType = 'appointment'),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        ChoiceChip(
+                                          label: const Text('টিকা 💉',
+                                              style: TextStyle(
+                                                  fontFamily: 'Noto Sans Bengali',
+                                                  fontSize: 11)),
+                                          selected:
+                                              _testTargetType == 'vaccine',
+                                          onSelected: (_) => setDebugState(
+                                              () => _testTargetType = 'vaccine'),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        ChoiceChip(
+                                          label: const Text('পিরিয়ড 🩸',
+                                              style: TextStyle(
+                                                  fontFamily: 'Noto Sans Bengali',
+                                                  fontSize: 11)),
+                                          selected:
+                                              _testTargetType == 'period',
+                                          onSelected: (_) => setDebugState(
+                                              () => _testTargetType = 'period'),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        ChoiceChip(
+                                          label: const Text('ওভুলেশন 🌸',
+                                              style: TextStyle(
+                                                  fontFamily: 'Noto Sans Bengali',
+                                                  fontSize: 11)),
+                                          selected:
+                                              _testTargetType == 'ovulation',
+                                          onSelected: (_) => setDebugState(
+                                              () => _testTargetType = 'ovulation'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: ElevatedButton.icon(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                const Color(0xFF2E7D32),
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 10),
+                                          ),
+                                          icon: const Icon(
+                                              Icons.notifications_active_rounded,
+                                              size: 18),
+                                          label: Text(
+                                            state.isEnglish
+                                                ? 'Instant Test'
+                                                : 'এখনই পাঠান',
+                                            style: const TextStyle(
+                                              fontFamily: 'Noto Sans Bengali',
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                          onPressed: () async {
+                                            final res = await NotificationService
+                                                .instance
+                                                .sendTestNotification(
+                                              delaySeconds: 0,
+                                              targetType: _testTargetType,
+                                            );
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    res['message'] ?? '',
+                                                    style: const TextStyle(
+                                                        fontFamily:
+                                                            'Noto Sans Bengali'),
+                                                  ),
+                                                  backgroundColor:
+                                                      res['success'] == true
+                                                          ? const Color(0xFF2E7D32)
+                                                          : const Color(0xFFC2185B),
+                                                  duration:
+                                                      const Duration(seconds: 4),
+                                                ),
+                                              );
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: OutlinedButton.icon(
+                                          style: OutlinedButton.styleFrom(
+                                            side: const BorderSide(
+                                                color: Color(0xFF2E7D32),
+                                                width: 1.5),
+                                            foregroundColor:
+                                                const Color(0xFF2E7D32),
+                                            backgroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 10),
+                                          ),
+                                          icon: const Icon(
+                                              Icons.timer_rounded,
+                                              size: 18),
+                                          label: Text(
+                                            state.isEnglish
+                                                ? '5s Delay'
+                                                : '৫ সেকেন্ড পর',
+                                            style: const TextStyle(
+                                              fontFamily: 'Noto Sans Bengali',
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                          onPressed: () async {
+                                            final res = await NotificationService
+                                                .instance
+                                                .sendTestNotification(
+                                              delaySeconds: 5,
+                                              targetType: _testTargetType,
+                                            );
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    res['message'] ?? '',
+                                                    style: const TextStyle(
+                                                        fontFamily:
+                                                            'Noto Sans Bengali'),
+                                                  ),
+                                                  backgroundColor:
+                                                      res['success'] == true
+                                                          ? const Color(0xFF2E7D32)
+                                                          : const Color(0xFFC2185B),
+                                                  duration:
+                                                      const Duration(seconds: 4),
+                                                ),
+                                              );
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                     const SizedBox(height: 16),

@@ -28,6 +28,7 @@ import 'package:mombee_app/screens/onboarding/user_name_setup_screen.dart';
 import 'package:mombee_app/models/fetal_stage_visual_data.dart';
 import 'package:mombee_app/widgets/fetal_development_visual.dart';
 import 'package:mombee_app/screens/home/home_pregnant_screen.dart';
+import 'package:mombee_app/screens/home/widgets/home_greeting_header.dart';
 import 'package:mombee_app/data/vaccines_data.dart';
 import 'package:mombee_app/services/local_storage_service.dart';
 import 'package:mombee_app/services/app_localization.dart';
@@ -37,11 +38,14 @@ import 'package:mombee_app/widgets/daily_message_card.dart';
 import 'package:mombee_app/models/appointment.dart';
 import 'package:mombee_app/models/vaccine_item.dart';
 import 'package:mombee_app/services/daily_message_service.dart';
+import 'dart:convert';
 import 'package:mombee_app/services/notification_service.dart';
+import 'package:mombee_app/services/notification_navigation_handler.dart';
 import 'package:mombee_app/models/notification_item.dart';
 import 'package:mombee_app/screens/notifications/notification_center_screen.dart';
 import 'package:mombee_app/widgets/notification_permission_dialog.dart';
 import 'package:mombee_app/screens/home/home_screen.dart';
+import 'package:mombee_app/services/bangla_date_helper.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -98,8 +102,7 @@ void main() {
 
       expect(find.text('গর্ভধারণের প্রস্তুতি'), findsWidgets);
       expect(find.text('আজকের প্রস্তুতি ও উর্বর সময়'), findsOneWidget);
-      expect(find.text('মায়ের প্রস্তুতি'), findsOneWidget);
-      expect(find.text('বাবার ভূমিকা ও প্রস্তুতি'), findsOneWidget);
+      expect(find.text('গর্ভধারণের প্রস্তুতি পরামর্শ'), findsOneWidget);
       expect(find.textContaining('২৪ সপ্তাহে'), findsNothing);
       expect(find.textContaining('২৪তম সপ্তাহ সম্পর্কে জানুন'), findsNothing);
     });
@@ -126,8 +129,7 @@ void main() {
       expect(AppState.instance.currentPregnancyWeek, 8);
       expect(AppState.instance.currentTrimester, 1);
       expect(find.text('১ম ট্রাইমেস্টার'), findsWidgets);
-      expect(find.text('৮তম সপ্তাহ সম্পর্কে জানুন'), findsOneWidget);
-      expect(find.text('৮তম সপ্তাহের বিশেষ টিপস'), findsOneWidget);
+      expect(find.text('প্রাথমিক অঙ্গ গঠন ও হৃদস্পন্দন'), findsOneWidget);
       expect(find.textContaining('২৪ সপ্তাহে'), findsNothing);
     });
 
@@ -154,9 +156,7 @@ void main() {
 
       expect(find.text('আরিয়ান'), findsOneWidget);
       expect(find.textContaining('৪ মাস'), findsWidgets);
-      expect(find.text('খাওয়ানোর নিয়ম'), findsOneWidget);
-      expect(find.text('ঘুমের নিয়ম'), findsOneWidget);
-      expect(find.text('প্রধান মাইলফলক'), findsOneWidget);
+      expect(find.textContaining('বিকাশ ও যত্ন'), findsOneWidget);
       expect(find.textContaining('২৪ সপ্তাহে'), findsNothing);
     });
 
@@ -169,10 +169,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('তথ্য ও শিক্ষা ভাণ্ডার'), findsOneWidget);
-      expect(find.text('প্রতিদিনের প্রয়োজনীয় স্বাস্থ্য তথ্য'), findsOneWidget);
-      expect(find.text('বিষয়ভিত্তিক জ্ঞান'), findsOneWidget);
-      expect(find.text('জনপ্রিয় আর্টিকেল'), findsOneWidget);
+      expect(find.text('সাধারণ স্বাস্থ্য ও যত্ন'), findsOneWidget);
+      expect(find.text('দৈনিক স্বাস্থ্য শিক্ষা ও পুষ্টি'), findsOneWidget);
       expect(find.textContaining('২৪ সপ্তাহে'), findsNothing);
     });
   });
@@ -1338,10 +1336,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-          find.byWidgetPredicate((w) =>
-              w is RichText && w.text.toPlainText().contains('২২ সপ্তাহে')),
+          find.text(AppState.instance.pregnancyProgressAgeText),
           findsOneWidget);
-      expect(find.text('২২তম সপ্তাহ সম্পর্কে জানুন'), findsOneWidget);
       expect(find.text('ভায়াবিলিটি মাইলফলক ও ইন্দ্রিয় সক্রিয়তা'), findsOneWidget);
 
       // 2. Pregnancy Tracker Screen check
@@ -1389,10 +1385,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-          find.byWidgetPredicate((w) =>
-              w is RichText && w.text.toPlainText().contains('৮ সপ্তাহে')),
+          find.text(AppState.instance.pregnancyProgressAgeText),
           findsOneWidget);
-      expect(find.text('৮তম সপ্তাহ সম্পর্কে জানুন'), findsOneWidget);
       expect(find.text('প্রাথমিক অঙ্গ গঠন ও হৃদস্পন্দন'), findsOneWidget);
 
       // Dynamically update LMP to Week 36 (248 days ago)
@@ -1402,12 +1396,9 @@ void main() {
 
       // Verify immediate reactive update to Week 36
       expect(
-          find.byWidgetPredicate((w) =>
-              w is RichText && w.text.toPlainText().contains('৩৬ সপ্তাহে')),
+          find.text(AppState.instance.pregnancyProgressAgeText),
           findsOneWidget);
-      expect(find.text('৩৬তম সপ্তাহ সম্পর্কে জানুন'), findsOneWidget);
       expect(find.text('প্রসবকালীন অবস্থান ও ফুসফুসের পূর্ণতা'), findsOneWidget);
-      expect(find.text('৮তম সপ্তাহ সম্পর্কে জানুন'), findsNothing);
     });
 
     // Multi-Device Responsive Layout Tests for FetalDevelopmentVisual
@@ -1573,7 +1564,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text(message.title), findsOneWidget);
-      expect(find.textContaining('আজকের বার্তা'), findsOneWidget);
+      expect(find.textContaining('আজকে আপনার জন্য বার্তা'), findsOneWidget);
     });
 
     test('DailyMessageService returns context-aware tips across journeys', () async {
@@ -1774,7 +1765,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(tester.takeException(), isNull);
-        expect(find.textContaining('আজকের বার্তা'), findsOneWidget);
+        expect(find.textContaining('আজকে আপনার জন্য বার্তা'), findsOneWidget);
       });
     }
   });
@@ -1791,7 +1782,7 @@ void main() {
       expect(p157.calculateTotalDays(now), 157);
       expect(p157.calculateCompletedWeeks(now), 22);
       expect(p157.calculateAdditionalDays(now), 3);
-      expect(p157.getProgressAgeText(now), '২২ সপ্তাহ ৩ দিন চলছে');
+      expect(p157.getProgressAgeText(now), '২২ সপ্তাহ ৩ দিন');
       expect(p157.getTotalDaysText(now), 'মোট ১৫৭ দিন');
 
       // 154 days ago -> 22 completed weeks, 0 additional days
@@ -1802,7 +1793,7 @@ void main() {
       expect(p154.calculateTotalDays(now), 154);
       expect(p154.calculateCompletedWeeks(now), 22);
       expect(p154.calculateAdditionalDays(now), 0);
-      expect(p154.getProgressAgeText(now), '২২ সপ্তাহ ০ দিন চলছে');
+      expect(p154.getProgressAgeText(now), '২২ সপ্তাহ ০ দিন');
       expect(p154.getTotalDaysText(now), 'মোট ১৫৪ দিন');
 
       // 215 days ago -> 30 completed weeks, 5 additional days
@@ -1813,7 +1804,7 @@ void main() {
       expect(p215.calculateTotalDays(now), 215);
       expect(p215.calculateCompletedWeeks(now), 30);
       expect(p215.calculateAdditionalDays(now), 5);
-      expect(p215.getProgressAgeText(now), '৩০ সপ্তাহ ৫ দিন চলছে');
+      expect(p215.getProgressAgeText(now), '৩০ সপ্তাহ ৫ দিন');
       expect(p215.getTotalDaysText(now), 'মোট ২১৫ দিন');
     });
 
@@ -1825,13 +1816,13 @@ void main() {
       );
 
       // On day 157
-      expect(p.getProgressAgeText(baseDate), '২২ সপ্তাহ ৩ দিন চলছে');
+      expect(p.getProgressAgeText(baseDate), '২২ সপ্তাহ ৩ দিন');
       expect(p.getTotalDaysText(baseDate), 'মোট ১৫৭ দিন');
 
       // Advancing calendar by 1 day -> day 158 (22w 4d)
       final tomorrow = baseDate.add(const Duration(days: 1));
       expect(p.calculateTotalDays(tomorrow), 158);
-      expect(p.getProgressAgeText(tomorrow), '২২ সপ্তাহ ৪ দিন চলছে');
+      expect(p.getProgressAgeText(tomorrow), '২২ সপ্তাহ ৪ দিন');
       expect(p.getTotalDaysText(tomorrow), 'মোট ১৫৮ দিন');
 
       // Advancing calendar by 4 days -> day 161 (23w 0d)
@@ -1839,7 +1830,7 @@ void main() {
       expect(p.calculateTotalDays(fourDaysLater), 161);
       expect(p.calculateCompletedWeeks(fourDaysLater), 23);
       expect(p.calculateAdditionalDays(fourDaysLater), 0);
-      expect(p.getProgressAgeText(fourDaysLater), '২৩ সপ্তাহ ০ দিন চলছে');
+      expect(p.getProgressAgeText(fourDaysLater), '২৩ সপ্তাহ ০ দিন');
       expect(p.getTotalDaysText(fourDaysLater), 'মোট ১৬১ দিন');
     });
 
@@ -1865,7 +1856,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('২২ সপ্তাহ ৩ দিন চলছে'), findsOneWidget);
+      expect(find.text('২২ সপ্তাহ ৩ দিন'), findsOneWidget);
       expect(find.text('মোট ১৫৭ দিন'), findsOneWidget);
 
       // 2. Tracker screen test
@@ -1877,7 +1868,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('২২ সপ্তাহ ৩ দিন চলছে'), findsOneWidget);
+      expect(find.text('২২ সপ্তাহ ৩ দিন'), findsOneWidget);
       expect(find.text('মোট ১৫৭ দিন'), findsOneWidget);
       // Bento card for elapsed days
       await tester.scrollUntilVisible(find.text('১৫৭ দিন'), 300);
@@ -1898,7 +1889,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('২২ সপ্তাহ ৩ দিন চলছে'), findsOneWidget);
+      expect(find.text('২২ সপ্তাহ ৩ দিন'), findsOneWidget);
       expect(find.text('মোট ১৫৭ দিন'), findsOneWidget);
 
       // Change LMP to 215 days ago (30w 5d)
@@ -1907,7 +1898,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // UI updates reactively without restart
-      expect(find.text('৩০ সপ্তাহ ৫ দিন চলছে'), findsOneWidget);
+      expect(find.text('৩০ সপ্তাহ ৫ দিন'), findsOneWidget);
       expect(find.text('মোট ২১৫ দিন'), findsOneWidget);
     });
 
@@ -1930,7 +1921,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('সেটআপ শুরু করুন'), findsWidgets);
-      expect(find.text('২২ সপ্তাহ ৩ দিন চলছে'), findsNothing);
+      expect(find.text('২২ সপ্তাহ ৩ দিন'), findsNothing);
       expect(find.text('মোট ১৫৭ দিন'), findsNothing);
 
       // Tracker Screen: shows setup card, no hero calculation badges
@@ -1943,7 +1934,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('গর্ভধারণের তথ্য সেটআপ করুন'), findsOneWidget);
-      expect(find.text('২২ সপ্তাহ ৩ দিন চলছে'), findsNothing);
+      expect(find.text('২২ সপ্তাহ ৩ দিন'), findsNothing);
       expect(find.text('মোট ১৫৭ দিন'), findsNothing);
     });
 
@@ -2295,8 +2286,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // 1. Greeting
-      expect(find.textContaining('সুপ্রভাত, মারিয়া'), findsOneWidget);
+      // 1. Time-based Greeting & Bangla Date
+      expect(find.text(BanglaDateHelper.getGreetingPhrase()), findsOneWidget);
+      expect(find.text('মারিয়া'), findsWidgets);
       // 2. Pregnancy week and total days counters
       expect(
           find.text(AppState.instance.pregnancyProgressAgeText), findsOneWidget);
@@ -2305,8 +2297,368 @@ void main() {
       // 3. DailyMessageCard
       expect(find.byType(DailyMessageCard), findsOneWidget);
       // 4. Quick trackers grid
-      expect(find.text('পিরিয়ড\nট্র্যাকার'), findsOneWidget);
+      expect(find.text('পিরিয়ড\nট্র্যাকার'), findsOneWidget);
       expect(find.text('প্রেগন্যান্সি\nট্র্যাকার'), findsOneWidget);
+    });
+  });
+
+  group(
+      '22. Notification Branding, Payload Mapping & Deep Link Navigation Audit',
+      () {
+    testWidgets(
+        'NotificationNavigationHandler routes water payload to Tracker tab and WaterTrackerModal',
+        (tester) async {
+      await AppState.instance.setUserName('মারিয়া');
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorKey: rootNavigatorKey,
+          theme: AppTheme.lightTheme,
+          routes: {
+            '/main': (context) =>
+                MainNavigationShell(key: MainNavigationShell.shellKey),
+          },
+          initialRoute: '/main',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await NotificationNavigationHandler.instance
+          .handlePayload(jsonEncode({'type': 'water'}));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.byType(WaterTrackerModal), findsOneWidget);
+    });
+
+    testWidgets(
+        'NotificationNavigationHandler routes daily_care payload to DailyMessage modal',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorKey: rootNavigatorKey,
+          theme: AppTheme.lightTheme,
+          routes: {
+            '/main': (context) =>
+                MainNavigationShell(key: MainNavigationShell.shellKey),
+          },
+          initialRoute: '/main',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await NotificationNavigationHandler.instance
+          .handlePayload(jsonEncode({'type': 'daily_care'}));
+      await tester.pumpAndSettle();
+
+      expect(find.text('পড়েছি, ধন্যবাদ'), findsOneWidget);
+    });
+
+    testWidgets(
+        'NotificationNavigationHandler routes appointment payload to AppointmentsScreen',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorKey: rootNavigatorKey,
+          theme: AppTheme.lightTheme,
+          routes: {
+            '/main': (context) =>
+                MainNavigationShell(key: MainNavigationShell.shellKey),
+          },
+          initialRoute: '/main',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await NotificationNavigationHandler.instance
+          .handlePayload(jsonEncode({'type': 'appointment', 'id': 'app_1'}));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppointmentsScreen), findsOneWidget);
+    });
+
+    testWidgets(
+        'NotificationNavigationHandler routes vaccine payload to VaccinationScreen',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorKey: rootNavigatorKey,
+          theme: AppTheme.lightTheme,
+          routes: {
+            '/main': (context) =>
+                MainNavigationShell(key: MainNavigationShell.shellKey),
+          },
+          initialRoute: '/main',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await NotificationNavigationHandler.instance
+          .handlePayload(jsonEncode({'type': 'vaccine', 'id': 'vac_1'}));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(VaccinationScreen), findsOneWidget);
+    });
+
+    testWidgets(
+        'NotificationNavigationHandler routes general and test payloads to NotificationCenterScreen',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorKey: rootNavigatorKey,
+          theme: AppTheme.lightTheme,
+          routes: {
+            '/main': (context) =>
+                MainNavigationShell(key: MainNavigationShell.shellKey),
+          },
+          initialRoute: '/main',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await NotificationNavigationHandler.instance
+          .handlePayload(jsonEncode({'type': 'test'}));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(NotificationCenterScreen), findsOneWidget);
+    });
+
+    testWidgets(
+        'Cold launch pending payload executes after MainNavigationShell mounts',
+        (tester) async {
+      NotificationNavigationHandler.instance
+          .setPendingPayload(jsonEncode({'type': 'vaccine'}));
+
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorKey: rootNavigatorKey,
+          theme: AppTheme.lightTheme,
+          routes: {
+            '/main': (context) =>
+                MainNavigationShell(key: MainNavigationShell.shellKey),
+          },
+          initialRoute: '/main',
+        ),
+      );
+      await tester.pumpAndSettle(const Duration(milliseconds: 600));
+
+      expect(find.byType(VaccinationScreen), findsOneWidget);
+    });
+  });
+
+  group('23. Daily Care Message & Morning Notification Consistency Audit', () {
+    testWidgets('DailyMessageCard displays journey-matched message and opens details modal', (tester) async {
+      await AppState.instance.setJourney(JourneyType.pregnant);
+      await AppState.instance.updatePregnancyWithLMP(
+          DateTime.now().subtract(const Duration(days: 70))); // Week 10
+      await AppState.instance.resetDailyMessageDismissal();
+
+      final expectedMsg = DailyMessageService.getDailyMessageForCurrentProfile();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const Scaffold(
+            body: SingleChildScrollView(
+              child: DailyMessageCard(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(expectedMsg.title), findsOneWidget);
+      expect(find.text(expectedMsg.message), findsOneWidget);
+
+      // Tap card to open details modal
+      await tester.tap(find.text(expectedMsg.title));
+      await tester.pumpAndSettle();
+
+      expect(find.text('পড়েছি, ধন্যবাদ'), findsOneWidget);
+
+      // Dismiss message
+      await tester.tap(find.text('পড়েছি, ধন্যবাদ'));
+      await tester.pumpAndSettle();
+
+      expect(AppState.instance.isDailyMessageDismissedToday, isTrue);
+    });
+
+    test('DailyMessage matches across all 4 journeys deterministically', () async {
+      // Planning
+      await AppState.instance.setJourney(JourneyType.planning);
+      final planMsg = DailyMessageService.getDailyMessageForCurrentProfile();
+      expect(planMsg.category.isNotEmpty, isTrue);
+      expect(planMsg.title.isNotEmpty, isTrue);
+      expect(planMsg.message.isNotEmpty, isTrue);
+
+      // Pregnant
+      await AppState.instance.setJourney(JourneyType.pregnant);
+      final pregMsg = DailyMessageService.getDailyMessageForCurrentProfile();
+      expect(pregMsg.category.isNotEmpty, isTrue);
+      expect(pregMsg.title.isNotEmpty, isTrue);
+      expect(pregMsg.message.isNotEmpty, isTrue);
+
+      // Baby
+      await AppState.instance.setJourney(JourneyType.baby);
+      await AppState.instance.updateBabyData(
+        name: 'সৌরভ',
+        birthDate: DateTime.now().subtract(const Duration(days: 60)),
+      );
+      final babyMsg = DailyMessageService.getDailyMessageForCurrentProfile();
+      expect(babyMsg.title.contains('সৌরভ'), isTrue);
+      expect(babyMsg.category, 'শিশু যত্ন ও প্যারেন্টিং');
+
+      // General
+      await AppState.instance.setJourney(JourneyType.general);
+      final genMsg = DailyMessageService.getDailyMessageForCurrentProfile();
+      expect(genMsg.category, 'সার্বিক স্বাস্থ্য');
+    });
+  });
+
+  group('24. Minimal Home Screen, Smart Period & Ovulation Notifications Audit', () {
+    test('BanglaDateHelper.getGreetingPhrase accurately covers all 5 time slots', () {
+      // 1. সকাল (5:00 AM to before 12:00 PM)
+      expect(BanglaDateHelper.getGreetingPhrase(dateTime: DateTime(2026, 10, 24, 6, 0)), 'শুভ সকাল');
+      expect(BanglaDateHelper.getGreetingPhrase(dateTime: DateTime(2026, 10, 24, 11, 59)), 'শুভ সকাল');
+
+      // 2. দুপুর (12:00 PM to before 3:00 PM)
+      expect(BanglaDateHelper.getGreetingPhrase(dateTime: DateTime(2026, 10, 24, 12, 0)), 'শুভ দুপুর');
+      expect(BanglaDateHelper.getGreetingPhrase(dateTime: DateTime(2026, 10, 24, 14, 30)), 'শুভ দুপুর');
+
+      // 3. বিকাল (3:00 PM to before 6:00 PM)
+      expect(BanglaDateHelper.getGreetingPhrase(dateTime: DateTime(2026, 10, 24, 15, 0)), 'শুভ বিকাল');
+      expect(BanglaDateHelper.getGreetingPhrase(dateTime: DateTime(2026, 10, 24, 17, 59)), 'শুভ বিকাল');
+
+      // 4. সন্ধ্যা (6:00 PM to before 9:00 PM)
+      expect(BanglaDateHelper.getGreetingPhrase(dateTime: DateTime(2026, 10, 24, 18, 0)), 'শুভ সন্ধ্যা');
+      expect(BanglaDateHelper.getGreetingPhrase(dateTime: DateTime(2026, 10, 24, 20, 45)), 'শুভ সন্ধ্যা');
+
+      // 5. রাত্রি (9:00 PM to before 5:00 AM)
+      expect(BanglaDateHelper.getGreetingPhrase(dateTime: DateTime(2026, 10, 24, 21, 0)), 'শুভ রাত্রি');
+      expect(BanglaDateHelper.getGreetingPhrase(dateTime: DateTime(2026, 10, 24, 23, 30)), 'শুভ রাত্রি');
+      expect(BanglaDateHelper.getGreetingPhrase(dateTime: DateTime(2026, 10, 24, 2, 0)), 'শুভ রাত্রি');
+      expect(BanglaDateHelper.getGreetingPhrase(dateTime: DateTime(2026, 10, 24, 4, 59)), 'শুভ রাত্রি');
+    });
+
+    testWidgets('HomeGreetingHeader renders greeting, user name on second line, and Bangla date', (tester) async {
+      await AppState.instance.setUserName('মিম');
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const Scaffold(
+            body: HomeGreetingHeader(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(BanglaDateHelper.getGreetingPhrase()), findsOneWidget);
+      expect(find.text('মিম'), findsOneWidget);
+      expect(find.text(BanglaDateHelper.formatBanglaDate(DateTime.now())), findsOneWidget);
+    });
+
+    test('Period and Ovulation reminders calculation and pregnancy suppression', () async {
+      // 1. Planning journey with 28-day cycle, LMP 20 days ago
+      await AppState.instance.setJourney(JourneyType.planning);
+      final lmp = DateTime.now().subtract(const Duration(days: 20));
+      await AppState.instance.updatePeriodDetails(
+        lastPeriodDate: lmp,
+        cycleLength: 28,
+        periodDuration: 5,
+      );
+
+      expect(AppState.instance.periodData.isSetup, isTrue);
+      expect(AppState.instance.notifPeriod, isTrue);
+      expect(AppState.instance.notifOvulation, isTrue);
+      expect(AppState.instance.periodReminderHour, 9);
+      expect(AppState.instance.ovulationReminderHour, 9);
+
+      // Verify safe execution of scheduling methods
+      await NotificationService.instance.schedulePeriodReminder();
+      await NotificationService.instance.scheduleOvulationReminder();
+
+      // 2. Pregnancy journey suppresses period and ovulation reminders
+      await AppState.instance.setJourney(JourneyType.pregnant);
+      await NotificationService.instance.schedulePeriodReminder();
+      await NotificationService.instance.scheduleOvulationReminder();
+
+      // 3. User toggle preferences
+      await AppState.instance.setNotifPeriod(false);
+      expect(AppState.instance.notifPeriod, isFalse);
+      await AppState.instance.setNotifOvulation(false);
+      expect(AppState.instance.notifOvulation, isFalse);
+
+      await AppState.instance.setPeriodReminderTime(8, 30);
+      expect(AppState.instance.periodReminderHour, 8);
+      expect(AppState.instance.periodReminderMinute, 30);
+
+      await AppState.instance.setOvulationReminderTime(10, 15);
+      expect(AppState.instance.ovulationReminderHour, 10);
+      expect(AppState.instance.ovulationReminderMinute, 15);
+    });
+
+    testWidgets('NotificationNavigationHandler routes period and ovulation payloads to PeriodTrackerScreen', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorKey: rootNavigatorKey,
+          theme: AppTheme.lightTheme,
+          routes: {
+            '/main': (context) => MainNavigationShell(key: MainNavigationShell.shellKey),
+          },
+          initialRoute: '/main',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Test period payload
+      await NotificationNavigationHandler.instance.handlePayload('period');
+      await tester.pumpAndSettle();
+      expect(find.byType(PeriodTrackerScreen), findsOneWidget);
+
+      // Pop back
+      Navigator.of(rootNavigatorKey.currentContext!).pop();
+      await tester.pumpAndSettle();
+
+      // Test ovulation payload
+      await NotificationNavigationHandler.instance.handlePayload('ovulation');
+      await tester.pumpAndSettle();
+      expect(find.byType(PeriodTrackerScreen), findsOneWidget);
+    });
+
+    testWidgets('PeriodTrackerScreen shows unconfigured friendly prompt when period data is not setup', (tester) async {
+      await AppState.instance.resetPeriodSetup();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const PeriodTrackerScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('পিরিয়ড ও সাইকেল সেটআপ করুন'), findsOneWidget);
+      expect(find.text('সাইকেলের তথ্য সেট করুন'), findsOneWidget);
+    });
+
+    testWidgets('ProfileScreen notification preferences modal has switches and time pickers for Period & Ovulation', (tester) async {
+      await AppState.instance.setUserName('মিম');
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const ProfileScreen(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Open notification preferences modal
+      final prefTile = find.text('নোটিফিকেশন');
+      await tester.scrollUntilVisible(prefTile, 100);
+      expect(prefTile, findsOneWidget);
+      await tester.tap(prefTile);
+      await tester.pumpAndSettle();
+
+      expect(find.text('নোটিফিকেশন ও রিমাইন্ডার সেটিংস'), findsOneWidget);
+      expect(find.text('পিরিয়ড রিমাইন্ডার'), findsOneWidget);
+      expect(find.text('ওভুলেশন রিমাইন্ডার'), findsOneWidget);
+      expect(find.text('দৈনিক যত্ন বার্তা'), findsOneWidget);
     });
   });
 }

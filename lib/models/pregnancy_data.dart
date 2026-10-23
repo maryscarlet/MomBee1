@@ -67,15 +67,15 @@ class PregnancyData {
     return totalDays % 7;
   }
 
-  /// Formatted progress string (e.g., "২২ সপ্তাহ ৩ দিন চলছে")
+  /// Formatted progress string (e.g., "৬ সপ্তাহ ১ দিন")
   String getProgressAgeText([DateTime? referenceDate]) {
     if (!isSetup || lmpDate == null) return '';
     final weeks = calculateCompletedWeeks(referenceDate);
     final days = calculateAdditionalDays(referenceDate);
     if (AppState.instance.isEnglish) {
-      return '$weeks weeks $days days ongoing';
+      return '$weeks weeks $days days';
     }
-    return '${toBanglaDigits(weeks)} সপ্তাহ ${toBanglaDigits(days)} দিন চলছে';
+    return '${toBanglaDigits(weeks)} সপ্তাহ ${toBanglaDigits(days)} দিন';
   }
 
   /// Formatted total days string (e.g., "মোট ১৫৭ দিন")
